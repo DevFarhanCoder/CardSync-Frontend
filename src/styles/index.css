@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0F1216;
+  --surface: #151A21;
+  --muted: #1F2630;
+  --border: #2A3340;
+  --text: #E7ECF3;
+  --subtle: #AEB6C2;
+  --gold: #D4AF37;
+}
+
+html, body, #root { height: 100%; color: var(--text); }
+.glass {
+  background: rgba(21,26,33,0.75);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(212,175,55,0.12);
+}
+.btn {
+  @apply inline-flex items-center justify-center rounded-2xl px-4 py-2 font-medium transition;
+}
+.btn-gold {
+  @apply btn bg-[var(--gold)] text-black hover:brightness-110 shadow-soft;
+}
+.btn-outline {
+  @apply btn border border-[var(--gold)] text-[var(--text)] hover:bg-[rgba(212,175,55,0.1)];
+}
+.card {
+  @apply rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-soft;
+}
+.chip {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1 border border-[var(--border)] bg-[var(--muted)] text-sm;
+}
+
+/* === Marquee / Carousel utilities === */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee {
+  display: flex; width: 200%; animation: marquee 30s linear infinite;
+}
+.marquee:hover { animation-play-state: paused; }
+
+/* === MagicUI-style gradient border card === */
+.magic-card {
+  position: relative;
+  border-radius: 1.25rem; /* 2xl */
+  padding: 1px; /* gradient border thickness */
+  background: conic-gradient(from 180deg at 50% 50%,
+    rgba(212,175,55,0.35), rgba(255,255,255,0.06), rgba(212,175,55,0.35));
+}
+.magic-card > .inner {
+  background: rgba(21,26,33,0.9);
+  border-radius: inherit;
+}
+
+/* === Flow chart lines & pulse === */
+.flow-line {
+  stroke: rgba(212,175,55,0.55);
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+  animation: dash 2.4s linear infinite;
+}
+@keyframes dash {
+  to { stroke-dashoffset: -200; }
+}
+.flow-pulse {
+  box-shadow: 0 0 0 0 rgba(212,175,55,0.65);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(212,175,55,0.65); }
+  70% { box-shadow: 0 0 0 14px rgba(212,175,55,0); }
+  100% { box-shadow: 0 0 0 0 rgba(212,175,55,0); }
+}
+
+/* Full-bleed section helper */
+.full-bleed {
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Edge fade (prevents “cut” look on both sides) */
+.edge-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+/* Marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee {
+  display: flex;
+  width: 200%;
+  animation: marquee 28s linear infinite;
+}
+.marquee:hover { animation-play-state: paused; }
+
+/* Logo chip */
+.logo-chip {
+  height: 56px;
+  min-width: 140px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  padding: 0 18px;
+}
+.logo-chip img {
+  height: 26px;
+  display: block;
+  opacity: .88;
+  filter: grayscale(1);
+  transition: opacity .2s ease, filter .2s ease;
+}
+.logo-chip:hover img {
+  opacity: 1;
+  filter: none;
+}
+
+/* === Section-by-section scroll === */
+.snap-parent {
+  height: 100svh;               /* full viewport height, safe on mobile */
+  overflow-y: auto;
+  scroll-snap-type: y mandatory; /* snap vertically */
+  scroll-behavior: smooth;
+}
+
+.snap-child {
+  scroll-snap-align: start;      /* each section locks to top */
+  min-height: 92svh;             /* fills the screen with a little breathing room */
+  display: flex;
+  align-items: center;           /* vertically center content inside */
+  padding-block: 6rem;           /* vertical spacing within the section */
+}
+@media (min-width: 1024px) {
+  .snap-child { padding-block: 7rem; }
+}
+
+.ring-gold { box-shadow: 0 0 0 2px rgba(212,175,55,.45), 0 10px 34px rgba(212,175,55,.12); }
+
+.badge-floating{
+  position:absolute; top:-12px; left:50%; transform:translateX(-50%);
+  background:#0d1116; color:#ffd772; border:1px solid var(--border);
+  padding:.35rem .7rem; border-radius:999px; font-size:.75rem; font-weight:600;
+}
+
+
+/* -------- unify marquee (remove other duplicate) -------- */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee { display:flex; width:200%; animation:marquee 28s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
+
+/* Soft shadow used by .btn-gold etc. */
+.shadow-soft { box-shadow: 0 10px 34px rgba(0, 0, 0, 0.28); }
+
+/* Pricing card polish */
+.pricing-card {
+  border-radius: 1rem; /* matches pill buttons better */
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.pricing-card:hover { transform: translateY(-2px); box-shadow: 0 16px 44px rgba(0,0,0,.28); }
+
+/* Focus states (accessibility) */
+:where(a,button).btn:focus-visible,
+:where(.logo-chip,.pricing-card):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(13,17,22,1), 0 0 0 4px var(--gold);
+  border-color: var(--gold);
+}
+
+/* Optional: slightly smaller snap section padding for pricing */
+.snap-child.pricing-snap { padding-block: 4.5rem; }
+@media (min-width: 1024px) { .snap-child.pricing-snap { padding-block: 5.5rem; } }

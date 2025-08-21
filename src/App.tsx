@@ -1,4 +1,5 @@
-import { Route, Routes } from 'react-router-dom'
+// src/App.tsx
+import { Route, Routes, Navigate } from 'react-router-dom'
 import Landing from '@/pages/Landing'
 import Features from '@/pages/Features'
 import Pricing from '@/pages/Pricing'
@@ -17,6 +18,16 @@ import Billing from '@/pages/dashboard/Billing'
 import Integrations from '@/pages/dashboard/Integrations'
 import Marketplace from '@/pages/dashboard/Marketplace'
 import Support from '@/pages/dashboard/Support'
+import { useAuth } from '@/context/AuthContext'
+
+function RequireAuth({ children }: { children: JSX.Element }) {
+  const { isAuthed } = useAuth()
+  return isAuthed ? children : <Navigate to="/signin" replace />
+}
+function RequireAnon({ children }: { children: JSX.Element }) {
+  const { isAuthed } = useAuth()
+  return isAuthed ? <Navigate to="/" replace /> : children
+}
 
 export default function App() {
   return (
@@ -25,11 +36,12 @@ export default function App() {
       <Route path="/features" element={<Features />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/demo" element={<Demo />} />
-      <Route path="/signin" element={<SignIn />} />
-      <Route path="/signup" element={<SignUp />} />
 
-      {/* Dashboard */}
-      <Route path="/dashboard" element={<DashboardLayout />}>
+      <Route path="/signin" element={<RequireAnon><SignIn /></RequireAnon>} />
+      <Route path="/signup" element={<RequireAnon><SignUp /></RequireAnon>} />
+
+      {/* Dashboard (protected) */}
+      <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<Overview />} />
         <Route path="cards" element={<MyCards />} />
         <Route path="builder" element={<CardBuilder />} />

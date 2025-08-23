@@ -9,6 +9,7 @@ const LINKS: NavItem[] = [
   { label: 'Features', href: '/features' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Demo', href: '/demo' },
+  { label: 'Explore', href: '/explore' }, 
 ]
 
 export default function Navbar() {

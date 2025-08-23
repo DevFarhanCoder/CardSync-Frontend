@@ -19,6 +19,8 @@ import Integrations from '@/pages/dashboard/Integrations'
 import Marketplace from '@/pages/dashboard/Marketplace'
 import Support from '@/pages/dashboard/Support'
 import { useAuth } from '@/context/AuthContext'
+import Explore from '@/pages/Explore'
+import ShareCard from '@/pages/Share'
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthed } = useAuth()
@@ -36,6 +38,12 @@ export default function App() {
       <Route path="/features" element={<Features />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/demo" element={<Demo />} />
+
+      {/* 🔥 public nav to Explore */}
+      <Route path="/explore" element={<Explore />} />
+
+      {/* 🔒 share route requires auth */}
+      <Route path="/share/:id" element={<RequireAuth><ShareCard /></RequireAuth>} />
 
       <Route path="/signin" element={<RequireAnon><SignIn /></RequireAnon>} />
       <Route path="/signup" element={<RequireAnon><SignUp /></RequireAnon>} />

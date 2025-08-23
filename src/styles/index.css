@@ -182,3 +182,13 @@ html, body, #root { height: 100%; color: var(--text); }
 /* Optional: slightly smaller snap section padding for pricing */
 .snap-child.pricing-snap { padding-block: 4.5rem; }
 @media (min-width: 1024px) { .snap-child.pricing-snap { padding-block: 5.5rem; } }
+
+
+/* in globals.css or tailwind.css */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out;
+}

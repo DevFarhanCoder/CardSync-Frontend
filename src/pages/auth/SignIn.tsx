@@ -29,8 +29,8 @@ const EyeOffIcon = (p: React.SVGProps<SVGSVGElement>) => (
 );
 const Spinner = (p: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" className={p.className}>
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/>
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z" />
   </svg>
 );
 
@@ -63,11 +63,12 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch(api("/api/auth/login"), {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+
 
       const ct = res.headers.get("content-type") || "";
       const payload = ct.includes("application/json") ? await res.json() : {};

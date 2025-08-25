@@ -1,173 +1,254 @@
-// src/pages/Explore.tsx
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
-import CardPreview from "@/components/CardPreview";
+import OverviewCard from "@/components/cards/OverviewCard";
 
-// Use Vite env (typed loosely to avoid TS complaints if vite-env.d.ts isn't set up yet)
-const API_BASE: string =
-  (import.meta as any)?.env?.VITE_API_BASE_URL || "http://localhost:8080";
+const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || "";
+const API_BASE = RAW_BASE.replace(/\/$/, "");
+const api = (p: string) => `${API_BASE}${p.startsWith("/") ? "" : "/"}${p}`;
 
-type PublicCard = {
+type ExploreCard = {
   _id: string;
+  ownerId: string;
+  ownerName: string;
   title: string;
-  type: "business" | "personal" | "portfolio" | "event";
-  theme: "luxe" | "minimal" | "tech";
-  name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  logoUrl?: string;
-  website?: string;
-  tagline?: string;
-  role?: string;
-  eventDate?: string;
-  eventVenue?: string;
-  socials?: Record<string, string>;
+  slug: string;
+  theme: string;
+  data: any;
+  previewUrl?: string | null;
+  category: string;
   keywords?: string[];
+  tags?: string[];
 };
 
-function tokenize(q: string) {
-  return q.toLowerCase().trim().split(/\s+/).filter(Boolean).slice(0, 10);
-}
-
 export default function Explore() {
-  const [q, setQ] = useState("");
-  const [results, setResults] = useState<PublicCard[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [results, setResults] = useState<ExploreCard[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [active, setActive] = useState<ExploreCard | null>(null); // modal
+  const navigate = useNavigate();
 
-  // Trigger search when query changes (with debounce)
+  // debounce search
   useEffect(() => {
-    let alive = true;
-    const terms = tokenize(q);
+    let t = setTimeout(() => {
+      fetchData(query);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
-    // If empty, clear results and stop
-    if (terms.length === 0) {
-      setResults([]);
-      setErr(null);
+  useEffect(() => {
+    fetchData("");
+  }, []);
+
+  async function fetchData(q: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(api(`/api/explore${q ? `?q=${encodeURIComponent(q)}` : ""}`));
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setResults(data?.results || []);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load");
+    } finally {
       setLoading(false);
-      return;
     }
+  }
 
-    const run = async () => {
-      setLoading(true);
-      setErr(null);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/cards/search?q=${encodeURIComponent(terms.join(" "))}`
-        );
-        const json = await res.json();
-        if (!alive) return;
+  const categories = useMemo(() => {
+    const s = new Set<string>();
+    results.forEach((r) => r.category && s.add(r.category));
+    return ["All", ...Array.from(s)];
+  }, [results]);
 
-        if (res.ok) {
-          setResults(Array.isArray(json.items) ? json.items : []);
-        } else {
-          setResults([]);
-          setErr(json?.message || "Search failed");
-        }
-      } catch (e: any) {
-        if (!alive) return;
-        setResults([]);
-        setErr(e?.message || "Network error");
-      } finally {
-        if (alive) setLoading(false);
-      }
-    };
-
-    const t = setTimeout(run, 250); // debounce 250ms
-    return () => {
-      alive = false;
-      clearTimeout(t);
-    };
-  }, [q]);
-
-  const subtitle = useMemo(() => {
-    if (loading) return "Searching…";
-    if (err) return err;
-    if (!q.trim()) return "Search public profiles and connect instantly.";
-    if (results.length === 0) return "No results yet. Try a broader keyword.";
-    return `Found ${results.length} result${results.length > 1 ? "s" : ""}.`;
-  }, [q, loading, err, results]);
+  const [cat, setCat] = useState("All");
+  const filtered = useMemo(
+    () => (cat === "All" ? results : results.filter((r) => r.category?.toLowerCase() === cat.toLowerCase())),
+    [results, cat]
+  );
 
   return (
     <>
       <Navbar />
+      <section className="max-w-6xl mx-auto px-4 py-10">
+        <h1 className="text-3xl sm:text-4xl font-extrabold">
+          Find people by <span className="text-white/90">name</span> or <span className="text-yellow-400">keywords</span>.
+        </h1>
 
-      {/* Hero / Search */}
-      <section className="relative border-b border-[var(--border)] bg-[rgba(15,18,22,.72)]">
-        <div className="container py-10">
-          <div className="max-w-3xl">
-            <div className="chip mb-3">Discover</div>
-            <h1 className="text-4xl md:text-5xl font-semibold leading-tight">
-              Find people by <span className="text-[var(--gold)]">name</span> or{" "}
-              <span className="text-[var(--gold)]">keywords</span>.
-            </h1>
-            <p className="text-[var(--subtle)] mt-3">{subtitle}</p>
+        {/* search bar */}
+        <div className="mt-6">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search: software, designer, 'mumbai', etc."
+            className="w-full rounded-2xl bg-[#12161b] border border-[#2b2f36] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          />
+        </div>
 
-            <div className="mt-5 flex gap-2">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name or keyword…"
-                className="flex-1 rounded-xl bg-[var(--muted)] border border-[var(--border)] px-4 py-3 text-base text-[var(--text)]"
-              />
-            </div>
-          </div>
+        {/* category chips */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {categories.map((c) => (
+            <button
+              key={c}
+              onClick={() => setCat(c)}
+              className={`px-3 py-1.5 rounded-full text-sm border ${
+                cat === c
+                  ? "bg-yellow-500 text-black border-yellow-500"
+                  : "bg-[#12161b] text-white/80 border-[#2b2f36] hover:bg-[#151b21]"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+
+        {/* grid */}
+        <div className="mt-6 grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {loading && Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="rounded-2xl border border-[#2b2f36] bg-[#14181d] p-4 animate-pulse h-[220px]" />
+          ))}
+
+          {!loading && error && <p className="text-red-400">{error}</p>}
+
+          {!loading && !error && filtered.map((card) => (
+            <article
+              key={card._id}
+              className="rounded-2xl border border-[#2b2f36] bg-[#14181d] hover:bg-[#171c22] transition p-4"
+            >
+              {/* top row: owner + category */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => navigate(`/u/${card.ownerId}`)}
+                  className="flex items-center gap-3 group"
+                  title={`View ${card.ownerName}'s profile`}
+                >
+                  <span className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-amber-700 block" />
+                  <span className="font-medium group-hover:underline">{card.ownerName}</span>
+                </button>
+
+                {card.category && (
+                  <span className="text-xs px-2 py-1 rounded-full bg-indigo-600/25 text-indigo-200 border border-indigo-500/40">
+                    {card.category}
+                  </span>
+                )}
+              </div>
+
+              {/* mini preview */}
+              <div className="mt-3 rounded-xl border border-[#2b2f36] bg-[#0f1317] h-[130px] overflow-hidden flex items-center justify-center">
+                <div className="scale-[0.7] origin-top">
+                  <OverviewCard
+                    data={{
+                      logo: card.data?.logo,
+                      name: card.data?.name || card.title,
+                      tagline: card.data?.tagline || card.data?.role,
+                      phone: card.data?.phone,
+                      email: card.data?.email,
+                      website: card.data?.website,
+                      badge: card.data?.category || card.category,
+                      location: card.data?.location,
+                    }}
+                    theme={card.theme}
+                  />
+                </div>
+              </div>
+
+              {/* bottom row: title + keywords + actions */}
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">{card.title}</div>
+                  <div className="mt-1 flex gap-1 flex-wrap">
+                    {(card.keywords || card.tags || [])
+                      .slice(0, 2)
+                      .filter(Boolean)
+                      .map((k, i) => (
+                        <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/70">
+                          {k}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setActive(card)}
+                    className="px-3 py-1.5 rounded-xl text-sm border border-[#2b2f36] hover:bg-[#151b21]"
+                    title="Preview"
+                  >
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/u/${card.ownerId}`).catch(() => {});
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-sm border border-[#2b2f36] hover:bg-[#151b21]"
+                    title="Share profile"
+                  >
+                    Share
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
-      {/* Results */}
-      <section className="container py-8">
-        {loading ? (
-          <div className="card p-6 text-[var(--subtle)]">Loading…</div>
-        ) : err ? (
-          <div className="card p-6 text-red-400">{err}</div>
-        ) : !q.trim() ? (
-          <div className="card p-6 text-[var(--subtle)]">
-            Start typing to search public profiles.
-          </div>
-        ) : results.length === 0 ? (
-          <div className="card p-6 text-[var(--subtle)]">
-            No results yet. Try a broader keyword.
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((r) => {
-              const previewData = {
-                title: r.title,
-                type: r.type,
-                theme: r.theme,
-                name: r.name,
-                email: r.email,
-                phone: r.phone,
-                address: r.address,
-                logoUrl: r.logoUrl,
-                website: r.website,
-                tagline: r.tagline,
-                role: r.role,
-                eventDate: r.eventDate,
-                eventVenue: r.eventVenue,
-                socials: r.socials || {},
-              };
-              return (
-                <div key={r._id} className="card p-4 hover:bg-white/5 transition">
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] grid place-items-center h-44 overflow-hidden">
-                    <CardPreview data={previewData} showPlaceholders={false} />
-                  </div>
-                  <div className="mt-3">
-                    <div className="font-semibold truncate">
-                      {r.name || r.title || "Card"}
-                    </div>
-                    <div className="text-xs text-[var(--subtle)] truncate">
-                      {(r.keywords || []).slice(0, 6).join(", ")}
-                    </div>
-                  </div>
+      {/* simple preview modal */}
+      {active && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setActive(null)}>
+          <div
+            className="bg-[#12161b] rounded-2xl border border-[#2b2f36] w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-[#0e1216] min-h-[360px] flex items-center justify-center">
+              <OverviewCard
+                data={{
+                  logo: active.data?.logo,
+                  name: active.data?.name || active.title,
+                  tagline: active.data?.tagline || active.data?.role,
+                  phone: active.data?.phone,
+                  email: active.data?.email,
+                  website: active.data?.website,
+                  badge: active.data?.category || active.category,
+                  location: active.data?.location,
+                }}
+                theme={active.theme}
+              />
+            </div>
+            <div className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-semibold">{active.title}</div>
+                  <button
+                    onClick={() => navigate(`/u/${active.ownerId}`)}
+                    className="text-sm text-white/70 hover:underline"
+                  >
+                    by {active.ownerName}
+                  </button>
                 </div>
-              );
-            })}
+                <button className="text-gray-400 hover:text-white" onClick={() => setActive(null)}>✕</button>
+              </div>
+
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={() => navigate(`/u/${active.ownerId}`)}
+                  className="rounded-xl bg-yellow-500 hover:bg-yellow-600 text-black px-4 py-2 font-medium"
+                >
+                  View Profile
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/u/${active.ownerId}`).catch(() => {});
+                  }}
+                  className="rounded-xl border border-[#2b2f36] px-4 py-2"
+                >
+                  Share
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
     </>
   );
 }

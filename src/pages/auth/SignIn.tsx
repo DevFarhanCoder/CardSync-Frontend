@@ -48,8 +48,10 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // quick email heuristic for CTA enablement
-  const canSubmit = useMemo(() => /\S+@\S+\.\S+/.test(email) && password.length >= 6 && !loading, [email, password, loading]);
+  const canSubmit = useMemo(
+    () => /\S+@\S+\.\S+/.test(email) && password.length >= 6 && !loading,
+    [email, password, loading]
+  );
 
   useEffect(() => {
     document.title = "Sign in • CardSync";
@@ -63,28 +65,35 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
+      const res = await fetch(api("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        // credentials: "include", // uncomment if you use cookies
       });
-
 
       const ct = res.headers.get("content-type") || "";
       const payload = ct.includes("application/json") ? await res.json() : {};
 
       if (!res.ok) {
-        setError((payload as any)?.message || "Invalid credentials");
+        if (res.status === 405) {
+          setError("Login endpoint does not accept POST (405). Check API route or Vercel rewrite.");
+        } else {
+          setError((payload as any)?.message || `Error ${res.status}`);
+        }
         return;
       }
-      if (!(payload as any)?.token) {
+
+      const token = (payload as any)?.token as string | undefined;
+      if (!token) {
         setError("Login response missing token");
         return;
       }
 
-      localStorage.setItem("token", (payload as any).token);
-      if ((payload as any).user) localStorage.setItem("user", JSON.stringify((payload as any).user));
-
+      localStorage.setItem("token", token);
+      if ((payload as any).user) {
+        localStorage.setItem("user", JSON.stringify((payload as any).user));
+      }
       if (remember) localStorage.setItem("remember_email", email);
       else localStorage.removeItem("remember_email");
 
@@ -108,19 +117,14 @@ export default function SignIn() {
           onSubmit={onSubmit}
           className="relative w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] backdrop-blur"
         >
-          {/* subtle ring */}
           <div className="absolute -inset-px rounded-2xl ring-1 ring-white/10 pointer-events-none" />
 
-          {/* header */}
           <div className="mb-6 text-center">
             <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-600 shadow-lg" />
             <h1 className="text-2xl font-bold tracking-tight">Welcome Back</h1>
-            <p className="mt-1 text-sm text-white/60">
-              Sign in to manage your cards and analytics.
-            </p>
+            <p className="mt-1 text-sm text-white/60">Sign in to manage your cards and analytics.</p>
           </div>
 
-          {/* email */}
           <label className="block text-sm text-white/80">Email</label>
           <div className="mt-1 relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40">
@@ -138,7 +142,6 @@ export default function SignIn() {
             />
           </div>
 
-          {/* password */}
           <div className="mt-4">
             <label className="block text-sm text-white/80">Password</label>
             <div className="mt-1 relative">
@@ -164,7 +167,6 @@ export default function SignIn() {
             </div>
           </div>
 
-          {/* options */}
           <div className="mt-3 flex items-center justify-between">
             <label className="flex select-none items-center gap-2 text-sm text-white/70">
               <input
@@ -180,14 +182,12 @@ export default function SignIn() {
             </Link>
           </div>
 
-          {/* error */}
           {error && (
             <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
               {error}
             </div>
           )}
 
-          {/* submit */}
           <button
             type="submit"
             disabled={!canSubmit}
@@ -206,14 +206,12 @@ export default function SignIn() {
             )}
           </button>
 
-          {/* divider */}
           <div className="my-5 flex items-center gap-3 text-xs text-white/40">
             <div className="h-px flex-1 bg-white/10" />
             <span>or</span>
             <div className="h-px flex-1 bg-white/10" />
           </div>
 
-          {/* secondary actions (optional) */}
           <div className="text-center text-sm text-white/70">
             No account?{" "}
             <Link to="/signup" className="text-yellow-400 hover:text-yellow-300">

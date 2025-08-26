@@ -1,4 +1,3 @@
-// src/pages/dashboard/Overview.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Share2, UserPlus, Activity } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -20,9 +19,9 @@ type RecentItem = {
 
 type OverviewRes = {
   totals: Totals;
-  trend: number[];               // views (30-day)
-  sharesTrend?: number[];        // optional; fallback to zeros
-  conversionTrend?: number[];    // optional; fallback to smoothed views
+  trend: number[];
+  sharesTrend?: number[];
+  conversionTrend?: number[];
   recentActivity: RecentItem[];
 };
 
@@ -34,26 +33,63 @@ export default function Overview() {
 
   useEffect(() => {
     const ctrl = new AbortController();
-    (async () => {
+
+    async function run() {
+      if (!token) return;
+      if (!API) {
+        setErr("VITE_API_BASE_URL is not set");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setErr(null);
+
       try {
         const res = await fetch(`${API}/v1/analytics/overview`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: ctrl.signal,
         });
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j?.error || "Failed to load overview");
+
+        const text = await res.text();
+        let payload: any = {};
+        try {
+          payload = JSON.parse(text);
+        } catch {
+          throw new Error(`Unexpected response (not JSON): ${text.slice(0, 120)}…`);
         }
-        const j = (await res.json()) as OverviewRes;
-        setData(j);
+
+        if (!res.ok) {
+          throw new Error(payload?.error || payload?.message || `HTTP ${res.status}`);
+        }
+
+        const body = payload?.data ? payload.data : payload;
+
+        const normalized: OverviewRes = {
+          totals: {
+            totalViews: Number(body?.totals?.totalViews ?? 0),
+            totalShares: Number(body?.totals?.totalShares ?? 0),
+            newConnections: Number(body?.totals?.newConnections ?? 0),
+            engagementScore: Number(body?.totals?.engagementScore ?? 0),
+          },
+          trend: Array.isArray(body?.trend) ? body.trend : [],
+          sharesTrend: Array.isArray(body?.sharesTrend) ? body.sharesTrend : undefined,
+          conversionTrend: Array.isArray(body?.conversionTrend) ? body.conversionTrend : undefined,
+          recentActivity: Array.isArray(body?.recentActivity) ? body.recentActivity : [],
+        };
+
+        setData(normalized);
       } catch (e: any) {
-        if (e.name !== "AbortError") setErr(e.message || "Failed to load overview");
+        if (e.name !== "AbortError") {
+          console.error("[Overview] load error →", e);
+          setErr(e.message || "Failed to load overview");
+        }
       } finally {
         setLoading(false);
       }
-    })();
+    }
+
+    run();
     return () => ctrl.abort();
   }, [token]);
 
@@ -69,38 +105,19 @@ export default function Overview() {
 
   const viewsTrend = data?.trend ?? [];
   const sharesTrend = data?.sharesTrend ?? Array(viewsTrend.length).fill(0);
-  const conversionTrend =
-    data?.conversionTrend ?? movingAverage(viewsTrend, 5);
+  const conversionTrend = data?.conversionTrend ?? movingAverage(viewsTrend, 5);
 
   const zeroState =
-    totals.totalViews === 0 &&
-    totals.totalShares === 0 &&
-    totals.newConnections === 0;
+    totals.totalViews === 0 && totals.totalShares === 0 && totals.newConnections === 0;
 
   return (
-    <div className="container py-6 space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <KpiCard
-          label="Total Views"
-          value={totals.totalViews}
-          icon={<Eye size={18} />}
-        />
-        <KpiCard
-          label="Total Shares"
-          value={totals.totalShares}
-          icon={<Share2 size={18} />}
-        />
-        <KpiCard
-          label="New Connections"
-          value={totals.newConnections}
-          icon={<UserPlus size={18} />}
-        />
-        <KpiCard
-          label="Engagement Score"
-          value={totals.engagementScore}
-          icon={<Activity size={18} />}
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <KpiCard label="Total Views" value={totals.totalViews} icon={<Eye size={18} />} />
+        <KpiCard label="Total Shares" value={totals.totalShares} icon={<Share2 size={18} />} />
+        <KpiCard label="New Connections" value={totals.newConnections} icon={<UserPlus size={18} />} />
+        <KpiCard label="Engagement Score" value={totals.engagementScore} icon={<Activity size={18} />} />
       </div>
 
       {/* Charts */}
@@ -108,18 +125,16 @@ export default function Overview() {
         <ChartCard title="Views">
           <SparkBars values={viewsTrend} />
         </ChartCard>
-
         <ChartCard title="Shares">
           <SparkBars values={sharesTrend} />
         </ChartCard>
-
         <ChartCard title="Conversion Trend">
           <SparkLine values={conversionTrend} />
         </ChartCard>
       </div>
 
       {/* Recent Activity */}
-      <div className="card p-5">
+      <div className="card p-5 overflow-x-auto">
         <h3 className="text-base font-semibold mb-3">Recent Activity</h3>
 
         {loading && (
@@ -140,8 +155,8 @@ export default function Overview() {
           <>
             {zeroState && (!data?.recentActivity?.length || data.recentActivity.length === 0) ? (
               <div className="text-[var(--subtle)] text-sm">
-                No activity yet. Create your first card and share it to start
-                seeing views, shares, and connection stats here.
+                No activity yet. Create your first card and share it to start seeing views, shares, and
+                connection stats here.
               </div>
             ) : (
               <ul className="list-disc list-inside space-y-1 text-sm">
@@ -180,20 +195,13 @@ function KpiCard({
         <span className="text-[var(--subtle)]">{icon}</span>
       </div>
       <div className="mt-2 text-3xl font-semibold">{formatNumber(value)}</div>
-      {/* keep extra room for subtle notes if you add later */}
     </div>
   );
 }
 
-function ChartCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="card p-5">
+    <div className="card p-5 min-h-[180px]">
       <div className="text-sm mb-3">{title}</div>
       <div className="h-40">{children}</div>
     </div>
@@ -237,7 +245,6 @@ function SparkBars({
           />
         );
       })}
-      {/* baseline */}
       <line
         x1={0}
         x2={width}
@@ -261,7 +268,7 @@ function SparkLine({
 }) {
   const safe = values && values.length > 0 ? values : [0];
   const max = Math.max(...safe, 1);
-  const width = 300; // viewBox width; scaled by CSS to fit
+  const width = 300;
   const stepX = (width - padding * 2) / Math.max(safe.length - 1, 1);
   const scaleY = (v: number) => {
     const h = (v / max) * (height - padding * 2);
@@ -279,7 +286,6 @@ function SparkLine({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
-      {/* baseline */}
       <line
         x1={0}
         x2={width}

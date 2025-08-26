@@ -33,6 +33,18 @@ export default function Share() {
     return () => { alive = false; };
   }, [id, token]);
 
+
+  // record a public "view" when someone opens the shared card page
+  useEffect(() => {
+    if (!card?._id) return;
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/analytics/card/${card._id}/increment`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event: "view" }),
+    }).catch(() => { });
+  }, [card?._id]);
+
+
   if (loading) return <div className="max-w-3xl mx-auto p-6 text-[var(--subtle)]">Loading…</div>;
   if (err) return (
     <div className="max-w-3xl mx-auto p-6">

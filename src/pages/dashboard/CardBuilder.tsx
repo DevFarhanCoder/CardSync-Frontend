@@ -35,7 +35,7 @@ export default function CardBuilder() {
 
   const editingLocalId = params.get("id") ?? location.state?.id ?? null;
 
-  const [title, setTitle] = useState("Card Title");
+  const [title, setTitle] = useState("");
   const [theme, setTheme] = useState<Theme>("luxe");
   const [type, setType] = useState<CardType>("business");
 

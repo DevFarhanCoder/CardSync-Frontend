@@ -32,21 +32,23 @@ export default function MyCards() {
     setTimeout(() => setToast(null), 2000);
   };
 
+  // Share (use POST /api/cards/:id/share)
   const handleShare = async (c: Saved) => {
     let url = localShareUrl(c.id);
 
-    // Prefer backend share if we have a dbId
     if (c.dbId) {
       try {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${API_BASE}/api/cards/${c.dbId}/share`, { method: "POST", headers });
+
+        const res = await fetch(`${API_BASE}/api/cards/${c.dbId}/share`, {
+          method: "POST",
+          headers,
+        });
         const data = await res.json();
-        if (res.ok && data?.shareUrl) {
-          url = data.shareUrl;
-        }
-      } catch (e) {
-        console.debug("Share API not available, using local link.", e);
+        if (res.ok && data?.shareUrl) url = data.shareUrl;
+      } catch {
+        /* fall back to local link */
       }
     }
 
@@ -63,6 +65,36 @@ export default function MyCards() {
     navigate(`/dashboard/builder?id=${c.id}`, { state: { id: c.id, data: c.data } });
   };
 
+  // NEW — delete handler (backend if dbId exists, always update local)
+  // Delete (use DELETE /api/cards/:id)
+  const handleDelete = async (c: Saved) => {
+    if (!confirm("Are you sure you want to delete this card?")) return;
+
+    try {
+      if (c.dbId) {
+        const res = await fetch(`${API_BASE}/api/cards/${c.dbId}`, {
+          method: "DELETE",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          throw new Error(j?.error || j?.message || "Failed to delete on server");
+        }
+      }
+
+      // remove from localStorage + state
+      setSaved(prev => {
+        const next = prev.filter(x => x.id !== c.id);
+        localStorage.setItem("cards", JSON.stringify(next));
+        return next;
+      });
+      showToast("Card deleted");
+    } catch (e: any) {
+      showToast(e.message || "Delete failed");
+    }
+  };
+
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -76,8 +108,11 @@ export default function MyCards() {
         <div className="grid md:grid-cols-3 gap-4">
           {saved.map((c) => (
             <div key={c.id} className="card p-4 relative group">
-              <button className="absolute right-3 top-3 h-9 w-9 grid place-items-center rounded-xl border border-[var(--border)] bg-[var(--muted)]/80 hover:bg-white/10"
-                title="Quick view" onClick={() => setActive(c)}>
+              <button
+                className="absolute right-3 top-3 h-9 w-9 grid place-items-center rounded-xl border border-[var(--border)] bg-[var(--muted)]/80 hover:bg-white/10"
+                title="Quick view"
+                onClick={() => setActive(c)}
+              >
                 <Eye size={18} />
               </button>
 
@@ -87,18 +122,29 @@ export default function MyCards() {
 
               <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold truncate">{c.data?.title || c.data?.type || "Card"}</h4>
-                  <p className="text-xs text-[var(--subtle)]">{new Date(c.createdAt).toLocaleString()}</p>
+                  <h4 className="font-semibold truncate">
+                    {c.data?.title || c.data?.type || "Card"}
+                  </h4>
+                  <p className="text-xs text-[var(--subtle)]">
+                    {new Date(c.createdAt).toLocaleString()}
+                  </p>
                 </div>
                 <span className="chip">{c.dbId ? "Synced" : "Local"}</span>
               </div>
 
-              <div className="mt-3 flex gap-2">
-                <button className="btn btn-outline flex-1" onClick={() => handleShare(c)}>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <button className="btn btn-outline" onClick={() => handleShare(c)}>
                   <Link2 className="mr-2 h-4 w-4" /> Share
                 </button>
-                <button className="btn btn-gold flex-1" onClick={() => handleEdit(c)}>
+                <button className="btn btn-gold" onClick={() => handleEdit(c)}>
                   Edit
+                </button>
+                {/* NEW — Delete */}
+                <button
+                  className="btn bg-red-600 hover:bg-red-700 text-white"
+                  onClick={() => handleDelete(c)}
+                >
+                  Delete
                 </button>
               </div>
             </div>
@@ -124,6 +170,13 @@ export default function MyCards() {
                     <Link2 className="mr-2 h-4 w-4" /> Share
                   </button>
                   <button className="btn w-full" onClick={() => handleEdit(active)}>Edit</button>
+                  {/* Delete from modal too (optional) */}
+                  <button
+                    className="btn bg-red-600 hover:bg-red-700 text-white w-full"
+                    onClick={() => handleDelete(active)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
@@ -153,7 +206,9 @@ export default function MyCards() {
       {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[70]">
-          <div className="bg-black/90 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg">{toast}</div>
+          <div className="bg-black/90 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg">
+            {toast}
+          </div>
         </div>
       )}
     </div>

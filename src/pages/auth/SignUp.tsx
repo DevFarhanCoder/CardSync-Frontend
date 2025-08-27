@@ -1,8 +1,14 @@
-// src/pages/SignUp.tsx
-import React, { useState } from "react";
+// src/pages/auth/SignUp.tsx
+import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_BASE_URL;
+/* -------- API base: use VITE_API_BASE_URL if set, else relative (for Vercel rewrite) -------- */
+const RAW = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+const BASE = (RAW ?? "").replace(/\/$/, "");
+const apiUrl = (path: string) => {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return BASE ? `${BASE}${p}` : p;
+};
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -12,37 +18,44 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const canSubmit = useMemo(
+    () => name.trim().length > 1 && /\S+@\S+\.\S+/.test(email) && password.length >= 6 && !loading,
+    [name, email, password, loading]
+  );
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setErr(null);
+    if (!canSubmit) return;
 
-    // basic client validation
-    if (!name.trim() || !email.trim() || password.length < 6) {
-      setErr("Please fill all fields (password ≥ 6 chars).");
-      return;
-    }
+    setErr(null);
+    setLoading(true);
 
     try {
-      setLoading(true);
-      const res = await fetch(`${API}/v1/auth/register`, {
+      const res = await fetch(apiUrl("/api/auth/signup"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await res.json();
+      const ct = res.headers.get("content-type") || "";
+      const data = ct.includes("application/json") ? await res.json() : {};
+
       if (!res.ok) {
-        setErr(data?.error || "Registration failed");
+        const msg =
+          (data as any)?.message ||
+          (data as any)?.error ||
+          (res.status === 409 ? "Email already in use" : `Error ${res.status}`);
+        setErr(msg);
         return;
       }
 
-      // Save token & minimal user
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Save token & user (mirrors SignIn)
+      const token = (data as any)?.token as string | undefined;
+      if (token) localStorage.setItem("token", token);
+      if ((data as any)?.user) localStorage.setItem("user", JSON.stringify((data as any).user));
 
-      // Go to dashboard (or onboarding)
-      navigate("/dashboard", { replace: true });
-    } catch (e: any) {
+      navigate("/dashboard/cards", { replace: true });
+    } catch (_e) {
       setErr("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -54,7 +67,7 @@ export default function SignUp() {
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 shadow-2xl">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-semibold">Create Your Account</h1>
-          <p className="text-white/60 text-sm">Start your 14-day free trial</p>
+          <p className="text-white/60 text-sm">Start your free trial</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -65,7 +78,7 @@ export default function SignUp() {
               placeholder="John Carter"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
             />
           </div>
 
@@ -73,10 +86,10 @@ export default function SignUp() {
             <label className="block text-sm mb-1">Email</label>
             <input
               type="email"
-              placeholder="you@company.com"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
             />
           </div>
 
@@ -84,32 +97,35 @@ export default function SignUp() {
             <label className="block text-sm mb-1">Password</label>
             <input
               type="password"
-              placeholder="•••••••"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-white/30"
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
             />
-            <p className="text-xs text-white/50 mt-1">Min 6 characters</p>
+            <p className="mt-1 text-xs text-white/50">At least 6 characters.</p>
           </div>
 
           {err && (
-            <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/30 rounded-lg px-3 py-2">
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
               {err}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-xl px-4 py-3 font-medium bg-[#D4AF37] hover:bg-[#c9a330] disabled:opacity-60 disabled:cursor-not-allowed transition"
+            disabled={!canSubmit}
+            className={`w-full rounded-xl px-4 py-3 font-medium transition
+              ${canSubmit
+                ? "bg-yellow-500 text-black hover:bg-yellow-600 focus:ring-2 focus:ring-yellow-500/30"
+                : "bg-white/10 text-white/50 cursor-not-allowed"}`}
           >
-            {loading ? "Creating..." : "Create Account"}
+            {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-white/70">
+        <p className="mt-6 text-center text-sm text-white/70">
           Already have an account?{" "}
-          <Link to="/signin" className="text-[#D4AF37] hover:underline">
+          <Link to="/signin" className="text-yellow-400 hover:text-yellow-300">
             Sign in
           </Link>
         </p>

@@ -114,6 +114,20 @@ export default function CardBuilder() {
       )
     );
 
+    let res: Response;
+if (dbId) {
+  res = await fetch(api(`/cards/${dbId}`), {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify(payload),
+  });
+} else {
+  res = await fetch(api("/cards"), {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+}
     // Prepare backend-friendly payload
     const payload = {
       title,

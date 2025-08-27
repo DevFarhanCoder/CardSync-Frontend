@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Link2, Copy, ExternalLink, X } from "lucide-react";
 import CardPreview from "@/components/CardPreview";
+import { api } from "@/lib/api";
 
 type Saved = { id: string; dbId?: string | null; createdAt: string; data: any };
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";

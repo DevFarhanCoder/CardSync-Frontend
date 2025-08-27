@@ -1,9 +1,8 @@
 // src/pages/SignIn.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { api } from "@/lib/api";
 
-/* --- Small inline icons (no extra deps) --- */
+/* -------------------- inline icons (no extra deps) -------------------- */
 const MailIcon = (p: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...p}>
     <path strokeWidth="1.5" d="M3 7.5A2.5 2.5 0 0 1 5.5 5h13A2.5 2.5 0 0 1 21 7.5v9A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z" />
@@ -35,10 +34,15 @@ const Spinner = (p: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-/* --- API base (works with proxy or absolute URL) --- */
-const RAW_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL || "";
-const API_BASE = RAW_BASE.replace(/\/$/, "");
-const api = (p: string) => `${API_BASE}${p.startsWith("/") ? "" : "/"}${p}`;
+/* -------------------- API base helper -------------------- */
+/** If VITE_API_BASE_URL exists, use it. Otherwise hit relative path (for Vercel rewrite). */
+const RAW = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+const BASE = (RAW ?? "").replace(/\/$/, "");
+const apiUrl = (path: string) => {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  if (BASE) return `${BASE}${p}`;
+  return p; // relative to current origin
+};
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -66,19 +70,21 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch(api("/auth/login"), {
+      // IMPORTANT: backend is mounted at /api
+      const res = await fetch(apiUrl("/api/auth/login"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // If you're using cookie-based auth, uncomment the next line and ensure CORS allows credentials:
+        // credentials: "include",
         body: JSON.stringify({ email, password }),
       });
-
 
       const ct = res.headers.get("content-type") || "";
       const payload = ct.includes("application/json") ? await res.json() : {};
 
       if (!res.ok) {
         if (res.status === 405) {
-          setError("Login endpoint does not accept POST (405). Check API route or Vercel rewrite.");
+          setError("Login endpoint does not accept POST (405). Check backend route or Vercel rewrite.");
         } else {
           setError((payload as any)?.message || `Error ${res.status}`);
         }
@@ -92,9 +98,10 @@ export default function SignIn() {
       }
 
       localStorage.setItem("token", token);
-      if ((payload as any).user) {
+      if ((payload as any)?.user) {
         localStorage.setItem("user", JSON.stringify((payload as any).user));
       }
+
       if (remember) localStorage.setItem("remember_email", email);
       else localStorage.removeItem("remember_email");
 
@@ -133,7 +140,7 @@ export default function SignIn() {
             </span>
             <input
               autoFocus
-              className="input mt-0 w-full rounded-xl border border-white/10 bg-[#0d1218] pl-10 pr-3 py-2.5 outline-none transition focus:border-yellow-500/60 focus:ring-2 focus:ring-yellow-500/20"
+              className="mt-0 w-full rounded-xl border border-white/10 bg-[#0d1218] pl-10 pr-3 py-2.5 outline-none transition focus:border-yellow-500/60 focus:ring-2 focus:ring-yellow-500/20"
               type="email"
               inputMode="email"
               value={email}
@@ -150,7 +157,7 @@ export default function SignIn() {
                 <LockIcon className="h-4 w-4" />
               </span>
               <input
-                className="input mt-0 w-full rounded-xl border border-white/10 bg-[#0d1218] pl-10 pr-10 py-2.5 outline-none transition focus:border-yellow-500/60 focus:ring-2 focus:ring-yellow-500/20"
+                className="mt-0 w-full rounded-xl border border-white/10 bg-[#0d1218] pl-10 pr-10 py-2.5 outline-none transition focus:border-yellow-500/60 focus:ring-2 focus:ring-yellow-500/20"
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

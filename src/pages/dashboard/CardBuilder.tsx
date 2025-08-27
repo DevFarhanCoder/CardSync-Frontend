@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import CardPreview, { CardData, CardType, Theme, SocialLinks } from "@/components/CardPreview";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 type FieldKey =
   | "name" | "email" | "phone" | "address" | "logoUrl" | "website"

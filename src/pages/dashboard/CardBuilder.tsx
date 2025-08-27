@@ -25,15 +25,24 @@ function isVisible(type: CardType, key: FieldKey): boolean {
   return cfg.required.includes(key) || cfg.optional.includes(key);
 }
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || "http://localhost:8080";
+/** API helper:
+ * - In production (no VITE_API_BASE_URL), call same-origin `/api/...` so Vercel rewrite handles proxying (no CORS).
+ * - In local dev, set VITE_API_BASE_URL=http://localhost:8080 and we’ll call http://localhost:8080/api/...
+ */
+const RAW_BASE: string = (import.meta as any)?.env?.VITE_API_BASE_URL || "";
+const api = (path: string) => {
+  const base = RAW_BASE.replace(/\/$/, "");
+  const p = path.startsWith("/api/") ? path : `/api${path.startsWith("/") ? path : `/${path}`}`;
+  return base ? `${base}${p}` : p;
+};
 
 export default function CardBuilder() {
   const location = useLocation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { token: ctxToken } = useAuth?.() ?? { token: undefined };
+  const { token: ctxToken } = (useAuth?.() as any) ?? { token: undefined };
 
-  const editingLocalId = params.get("id") ?? location.state?.id ?? null;
+  const editingLocalId = params.get("id") ?? (location as any).state?.id ?? null;
 
   const [title, setTitle] = useState("");
   const [theme, setTheme] = useState<Theme>("luxe");
@@ -132,21 +141,19 @@ export default function CardBuilder() {
     }
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      };
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
 
       let res: Response;
       if (dbId) {
-        // Prefer PATCH to partially update
-        res = await fetch(`${API_BASE}/api/cards/${dbId}`, {
-          method: "PATCH",
+        // backend exposes PUT /api/cards/:id
+        res = await fetch(api(`/cards/${dbId}`), {
+          method: "PUT",
           headers,
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`${API_BASE}/api/cards`, {
+        res = await fetch(api("/cards"), {
           method: "POST",
           headers,
           body: JSON.stringify(payload),
@@ -199,7 +206,7 @@ export default function CardBuilder() {
     const arr: any[] = existingRaw ? JSON.parse(existingRaw) : [];
     const idx = arr.findIndex((x) => x.id === localId);
     if (idx >= 0) {
-      payload.createdAt = arr[idx].createdAt || payload.createdAt;
+      (payload as any).createdAt = arr[idx].createdAt || (payload as any).createdAt;
       arr[idx] = payload;
     } else {
       arr.unshift(payload);

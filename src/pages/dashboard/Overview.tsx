@@ -3,8 +3,6 @@ import { Eye, Share2, UserPlus, Activity } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 
-const API = import.meta.env.VITE_API_BASE_URL;
-
 type Totals = {
   totalViews: number;
   totalShares: number;
@@ -12,11 +10,7 @@ type Totals = {
   engagementScore: number;
 };
 
-type RecentItem = {
-  id?: string;
-  message?: string;
-  createdAt?: string;
-};
+type RecentItem = { id?: string; message?: string; createdAt?: string };
 
 type OverviewRes = {
   totals: Totals;
@@ -34,25 +28,16 @@ export default function Overview() {
 
   useEffect(() => {
     const ctrl = new AbortController();
-
-    async function run() {
+    (async () => {
       if (!token) return;
-      if (!API) {
-        setErr("VITE_API_BASE_URL is not set");
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       setErr(null);
-
       try {
-await fetch(api("/analytics/overview"), {
-  headers: { Authorization: `Bearer ${token}` },
-  signal: ctrl.signal,
-});
-
-
+        // route through Vercel → /api/analytics/overview
+        const res = await fetch(api("/analytics/overview"), {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: ctrl.signal,
+        });
         const text = await res.text();
         let payload: any = {};
         try {
@@ -60,13 +45,9 @@ await fetch(api("/analytics/overview"), {
         } catch {
           throw new Error(`Unexpected response (not JSON): ${text.slice(0, 120)}…`);
         }
+        if (!res.ok) throw new Error(payload?.error || payload?.message || `HTTP ${res.status}`);
 
-        if (!res.ok) {
-          throw new Error(payload?.error || payload?.message || `HTTP ${res.status}`);
-        }
-
-        const body = payload?.data ? payload.data : payload;
-
+        const body = payload?.data ?? payload;
         const normalized: OverviewRes = {
           totals: {
             totalViews: Number(body?.totals?.totalViews ?? 0),
@@ -79,19 +60,13 @@ await fetch(api("/analytics/overview"), {
           conversionTrend: Array.isArray(body?.conversionTrend) ? body.conversionTrend : undefined,
           recentActivity: Array.isArray(body?.recentActivity) ? body.recentActivity : [],
         };
-
         setData(normalized);
       } catch (e: any) {
-        if (e.name !== "AbortError") {
-          console.error("[Overview] load error →", e);
-          setErr(e.message || "Failed to load overview");
-        }
+        if (e.name !== "AbortError") setErr(e.message || "Failed to load overview");
       } finally {
         setLoading(false);
       }
-    }
-
-    run();
+    })();
     return () => ctrl.abort();
   }, [token]);
 
@@ -114,7 +89,6 @@ await fetch(api("/analytics/overview"), {
 
   return (
     <div className="space-y-6 min-w-0">
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard label="Total Views" value={totals.totalViews} icon={<Eye size={18} />} />
         <KpiCard label="Total Shares" value={totals.totalShares} icon={<Share2 size={18} />} />
@@ -122,20 +96,12 @@ await fetch(api("/analytics/overview"), {
         <KpiCard label="Engagement Score" value={totals.engagementScore} icon={<Activity size={18} />} />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <ChartCard title="Views">
-          <SparkBars values={viewsTrend} />
-        </ChartCard>
-        <ChartCard title="Shares">
-          <SparkBars values={sharesTrend} />
-        </ChartCard>
-        <ChartCard title="Conversion Trend">
-          <SparkLine values={conversionTrend} />
-        </ChartCard>
+        <ChartCard title="Views"><SparkBars values={viewsTrend} /></ChartCard>
+        <ChartCard title="Shares"><SparkBars values={sharesTrend} /></ChartCard>
+        <ChartCard title="Conversion Trend"><SparkLine values={conversionTrend} /></ChartCard>
       </div>
 
-      {/* Recent Activity */}
       <div className="card p-5 overflow-x-auto">
         <h3 className="text-base font-semibold mb-3">Recent Activity</h3>
 
@@ -179,17 +145,7 @@ await fetch(api("/analytics/overview"), {
   );
 }
 
-/* ----------------------------- UI Partials ----------------------------- */
-
-function KpiCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon?: React.ReactNode;
-}) {
+function KpiCard({ label, value, icon }: { label: string; value: number; icon?: React.ReactNode }) {
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between">
@@ -210,64 +166,27 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
-/* ----------------------------- Tiny Charts ----------------------------- */
-
-function SparkBars({
-  values,
-  height = 150,
-  gap = 3,
-  padding = 6,
-}: {
-  values: number[];
-  height?: number;
-  gap?: number;
-  padding?: number;
-}) {
+/* Tiny charts & utils (unchanged) */
+function SparkBars({ values, height = 150, gap = 3, padding = 6 }: { values: number[]; height?: number; gap?: number; padding?: number; }) {
   const safe = values && values.length > 0 ? values : [0];
   const max = Math.max(...safe, 1);
   const barW = 6;
   const width = padding * 2 + safe.length * barW + (safe.length - 1) * gap;
   const yScale = (v: number) => (v / max) * (height - padding * 2);
-
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
       {safe.map((v, i) => {
         const h = yScale(v);
         const x = padding + i * (barW + gap);
         const y = height - padding - h;
-        return (
-          <rect
-            key={i}
-            x={x}
-            y={y}
-            width={barW}
-            height={Math.max(h, 1)}
-            rx={2}
-            className="fill-[var(--gold)]"
-          />
-        );
+        return <rect key={i} x={x} y={y} width={barW} height={Math.max(h, 1)} rx={2} className="fill-[var(--gold)]" />;
       })}
-      <line
-        x1={0}
-        x2={width}
-        y1={height - padding}
-        y2={height - padding}
-        className="stroke-white/10"
-        strokeWidth={1}
-      />
+      <line x1={0} x2={width} y1={height - padding} y2={height - padding} className="stroke-white/10" strokeWidth={1} />
     </svg>
   );
 }
 
-function SparkLine({
-  values,
-  height = 150,
-  padding = 8,
-}: {
-  values: number[];
-  height?: number;
-  padding?: number;
-}) {
+function SparkLine({ values, height = 150, padding = 8 }: { values: number[]; height?: number; padding?: number; }) {
   const safe = values && values.length > 0 ? values : [0];
   const max = Math.max(...safe, 1);
   const width = 300;
@@ -276,31 +195,14 @@ function SparkLine({
     const h = (v / max) * (height - padding * 2);
     return height - padding - h;
   };
-
   const pts = safe.map((v, i) => `${padding + i * stepX},${scaleY(v)}`).join(" ");
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
-      <polyline
-        points={pts}
-        fill="none"
-        stroke="var(--gold)"
-        strokeWidth={2}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <line
-        x1={0}
-        x2={width}
-        y1={height - padding}
-        y2={height - padding}
-        className="stroke-white/10"
-        strokeWidth={1}
-      />
+      <polyline points={pts} fill="none" stroke="var(--gold)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      <line x1={0} x2={width} y1={height - padding} y2={height - padding} className="stroke-white/10" strokeWidth={1} />
     </svg>
   );
 }
-
-/* ----------------------------- Utils ----------------------------- */
 
 function movingAverage(arr: number[], window: number) {
   if (!arr || arr.length === 0) return [];
@@ -315,13 +217,8 @@ function movingAverage(arr: number[], window: number) {
 }
 
 function formatNumber(n: number) {
-  try {
-    return new Intl.NumberFormat().format(n);
-  } catch {
-    return String(n);
-  }
+  try { return new Intl.NumberFormat().format(n); } catch { return String(n); }
 }
-
 function formatWhen(iso?: string) {
   if (!iso) return "";
   const d = new Date(iso);

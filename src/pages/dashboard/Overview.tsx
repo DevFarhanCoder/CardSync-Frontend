@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Share2, UserPlus, Activity } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 const API = import.meta.env.VITE_API_BASE_URL;
 

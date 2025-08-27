@@ -65,12 +65,12 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch(api("/v1/auth/login"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        // credentials: "include", // uncomment if you use cookies
-      });
+      const res = await fetch("/api/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password })
+});
+
 
       const ct = res.headers.get("content-type") || "";
       const payload = ct.includes("application/json") ? await res.json() : {};

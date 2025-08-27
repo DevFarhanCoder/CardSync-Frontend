@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/analytics/:path*",
+      "destination": "https://cardsync-backend.onrender.com/v1/analytics/:path*"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://cardsync-backend.onrender.com/api/:path*"
     },

@@ -46,10 +46,11 @@ export default function Overview() {
       setErr(null);
 
       try {
-        const res = await fetch(`${API}/v1/analytics/overview`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: ctrl.signal,
-        });
+await fetch(api("/analytics/overview"), {
+  headers: { Authorization: `Bearer ${token}` },
+  signal: ctrl.signal,
+});
+
 
         const text = await res.text();
         let payload: any = {};

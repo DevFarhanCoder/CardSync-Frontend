@@ -1,6 +1,7 @@
 // src/pages/SignIn.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { api } from "@/lib/api";
 
 /* --- Small inline icons (no extra deps) --- */
 const MailIcon = (p: React.SVGProps<SVGSVGElement>) => (
@@ -65,11 +66,11 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password })
-});
+      const res = await fetch(api("/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
 
       const ct = res.headers.get("content-type") || "";

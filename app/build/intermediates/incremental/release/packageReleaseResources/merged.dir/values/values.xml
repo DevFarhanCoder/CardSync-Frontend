@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <bool name="enableNotification">true</bool>
-    <bool name="enableSiteSettingsShortcut">true</bool>
     <color name="backgroundColor">#FFFFFF</color>
     <color name="colorPrimary">#0EA5E9</color>
     <color name="colorPrimaryDark">#000000</color>
@@ -23,7 +22,6 @@
     
   </string>
     <string name="fallbackType" translatable="false">customtabs</string>
-    <string name="fullScopeUrl" translatable="false">https://www.instantllycards.com/</string>
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <string name="hostName" translatable="false">www.instantllycards.com</string>
     <string name="launchUrl" translatable="false">https://www.instantllycards.com/</string>

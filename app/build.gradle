@@ -20,6 +20,12 @@ plugins {
     id 'com.android.application'
 }
 
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 def twaManifest = [
     applicationId: 'com.instantllycards.www.twa',
     hostName: 'www.instantllycards.com', // The domain being opened in the TWA.
@@ -53,116 +59,65 @@ def twaManifest = [
 android {
     compileSdkVersion 36
     namespace "com.instantllycards.www.twa"
+
     defaultConfig {
         applicationId "com.instantllycards.www.twa"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 1
-        versionName "1"
+        versionCode 1   // 🚨 increment this for every upload
+        versionName "1.0.0"
 
-        // The name for the application
         resValue "string", "appName", twaManifest.name
-
-        // The name for the application on the Android Launcher
-        resValue "string", "launcherName", twaManifest.launcherName
-
-        // The URL that will be used when launching the TWA from the Android Launcher
-        def launchUrl = "https://" + twaManifest.hostName + twaManifest.launchUrl
-        resValue "string", "launchUrl", launchUrl
-
-        
-
-        
-            // The URL the Web Manifest for the Progressive Web App that the TWA points to. This
-            // is used by Chrome OS and Meta Quest to open the Web version of the PWA instead of
-            // the TWA, as it will probably give a better user experience for non-mobile devices.
-            resValue "string", "webManifestUrl", 'https://www.instantllycards.com/manifest.json'
-        
-
-        
-            // This is used by Meta Quest.
-            resValue "string", "fullScopeUrl", 'https://www.instantllycards.com/'
-        
-
-        
-
-        // The hostname is used when building the intent-filter, so the TWA is able to
-        // handle Intents to open host url of the application.
-        resValue "string", "hostName", twaManifest.hostName
-
-        // This attribute sets the status bar color for the TWA. It can be either set here or in
-        // `res/values/colors.xml`. Setting in both places is an error and the app will not
-        // compile. If not set, the status bar color defaults to #FFFFFF - white.
-        resValue "color", "colorPrimary", twaManifest.themeColor
-
-        // This attribute sets the dark status bar color for the TWA. It can be either set here or in
-        // `res/values/colors.xml`. Setting in both places is an error and the app will not
-        // compile. If not set, the status bar color defaults to #000000 - white.
-        resValue "color", "colorPrimaryDark", twaManifest.themeColorDark
-
-        // This attribute sets the navigation bar color for the TWA. It can be either set here or
-        // in `res/values/colors.xml`. Setting in both places is an error and the app will not
-        // compile. If not set, the navigation bar color defaults to #FFFFFF - white.
-        resValue "color", "navigationColor", twaManifest.navigationColor
-
-        // This attribute sets the dark navigation bar color for the TWA. It can be either set here
-        // or in `res/values/colors.xml`. Setting in both places is an error and the app will not
-        // compile. If not set, the navigation bar color defaults to #000000 - black.
-        resValue "color", "navigationColorDark", twaManifest.navigationColorDark
-
-        // This attribute sets the navbar divider color for the TWA. It can be either 
-        // set here or in `res/values/colors.xml`. Setting in both places is an error and the app 
-        // will not compile. If not set, the divider color defaults to #00000000 - transparent.
-        resValue "color", "navigationDividerColor", twaManifest.navigationDividerColor
-
-        // This attribute sets the dark navbar divider color for the TWA. It can be either 
-        // set here or in `res/values/colors.xml`. Setting in both places is an error and the 
-        //app will not compile. If not set, the divider color defaults to #000000 - black.
-        resValue "color", "navigationDividerColorDark", twaManifest.navigationDividerColorDark
-
-        // Sets the color for the background used for the splash screen when launching the
-        // Trusted Web Activity.
-        resValue "color", "backgroundColor", twaManifest.backgroundColor
-
-        // Defines a provider authority for the Splash Screen
-        resValue "string", "providerAuthority", twaManifest.applicationId + '.fileprovider'
-
-        // The enableNotification resource is used to enable or disable the
-        // TrustedWebActivityService, by changing the android:enabled and android:exported
-        // attributes
-        resValue "bool", "enableNotification", twaManifest.enableNotifications.toString()
-
-        twaManifest.shortcuts.eachWithIndex { shortcut, index ->
-            resValue "string", "shortcut_name_$index", "$shortcut.name"
-            resValue "string", "shortcut_short_name_$index", "$shortcut.short_name"
-        }
-
-        // The splashScreenFadeOutDuration resource is used to set the duration of fade out animation in milliseconds
-        // to be played when removing splash screen. The default is 0 (no animation).
-        resValue "integer", "splashScreenFadeOutDuration", twaManifest.splashScreenFadeOutDuration.toString()
-
-        resValue "string", "generatorApp", twaManifest.generatorApp
-
-        resValue "string", "fallbackType", twaManifest.fallbackType
-
-        resValue "bool", "enableSiteSettingsShortcut", twaManifest.enableSiteSettingsShortcut
-        resValue "string", "orientation", twaManifest.orientation
-
-        
+    resValue "string", "launcherName", twaManifest.launcherName
+    resValue "string", "launchUrl", "https://${twaManifest.hostName}${twaManifest.launchUrl}"
+    resValue "string", "webManifestUrl", "https://www.instantllycards.com/manifest.json"
+    resValue "string", "generatorApp", twaManifest.generatorApp
+    resValue "string", "hostName", twaManifest.hostName
+    resValue "string", "providerAuthority", "${twaManifest.applicationId}.fileprovider"
+    resValue "string", "fallbackType", twaManifest.fallbackType
+    resValue "string", "orientation", twaManifest.orientation
+    resValue "bool", "enableNotification", twaManifest.enableNotifications.toString()
+    resValue "color", "colorPrimary", twaManifest.themeColor
+    resValue "color", "colorPrimaryDark", twaManifest.themeColorDark
+    resValue "color", "navigationColor", twaManifest.navigationColor
+    resValue "color", "navigationColorDark", twaManifest.navigationColorDark
+    resValue "color", "navigationDividerColor", twaManifest.navigationDividerColor
+    resValue "color", "navigationDividerColorDark", twaManifest.navigationDividerColorDark
+    resValue "color", "backgroundColor", twaManifest.backgroundColor
+    resValue "integer", "splashScreenFadeOutDuration", twaManifest.splashScreenFadeOutDuration.toString()
     }
+
+    signingConfigs {
+        release {
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.release   // ✅ THIS is what was missing
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // keep debug config
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
     lintOptions {
         checkReleaseBuilds false
     }
 }
+
 
 task generateShorcutsFile {
     assert twaManifest.shortcuts.size() < 5, "You can have at most 4 shortcuts."

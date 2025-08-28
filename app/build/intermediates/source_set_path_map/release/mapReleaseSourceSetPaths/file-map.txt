@@ -23,6 +23,7 @@ com.instantllycards.www.twa.app-pngs-21 C:\Users\user3\Documents\Application\Car
 com.instantllycards.www.twa.app-resValues-22 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\generated\res\resValues\release
 com.instantllycards.www.twa.app-packageReleaseResources-23 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\intermediates\incremental\release\packageReleaseResources\merged.dir
 com.instantllycards.www.twa.app-packageReleaseResources-24 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\intermediates\incremental\release\packageReleaseResources\stripped.dir
-com.instantllycards.www.twa.app-release-25 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\intermediates\merged_res\release\mergeReleaseResources
-com.instantllycards.www.twa.app-main-26 C:\Users\user3\Documents\Application\CardSync-Frontend\app\src\main\res
-com.instantllycards.www.twa.app-release-27 C:\Users\user3\Documents\Application\CardSync-Frontend\app\src\release\res
+com.instantllycards.www.twa.app-merged-not-compiled-resources-25 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\intermediates\merged-not-compiled-resources\release
+com.instantllycards.www.twa.app-release-26 C:\Users\user3\Documents\Application\CardSync-Frontend\app\build\intermediates\merged_res\release\mergeReleaseResources
+com.instantllycards.www.twa.app-main-27 C:\Users\user3\Documents\Application\CardSync-Frontend\app\src\main\res
+com.instantllycards.www.twa.app-release-28 C:\Users\user3\Documents\Application\CardSync-Frontend\app\src\release\res

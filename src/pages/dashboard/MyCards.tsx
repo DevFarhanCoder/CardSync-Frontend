@@ -1,4 +1,3 @@
-// src/pages/dashboard/MyCards.tsx
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, X } from "lucide-react";
@@ -73,13 +72,11 @@ export default function MyCards() {
       ) : (
         <div className="grid md:grid-cols-3 gap-4">
           {saved.map((c) => {
-            const captureId = `card-cap-${c.id}`;
+            // unique id for the *inner card* inside CardPreview
+            const cardId = `card-${c.id}`;
             const who = [c?.data?.name, c?.data?.role].filter(Boolean).join(" – ");
             const theme = (c?.data?.theme || "").toLowerCase();  // "luxe" | "minimal" | "tech"
             const type = c?.data?.type;                           // "business" | "personal" | ...
-
-            // The emoji message that gets appended (no duplicate URLs at the top)
-            const headline = who ? `Sharing my InstantlyCards contact card.\n${who}` : "Sharing my InstantlyCards contact card.";
 
             return (
               <div key={c.id} className="card p-4 relative group">
@@ -91,9 +88,10 @@ export default function MyCards() {
                   <Eye size={18} />
                 </button>
 
-                {/* Capture target */}
-                <div id={captureId} className="rounded-xl border border-[var(--border)] bg-[var(--muted)] grid place-items-center h-44 overflow-hidden">
-                  <CardPreview id={captureId} data={c.data} type={type} theme={theme} showPlaceholders={false} />
+                {/* Wrapper without fixed height/ID so the whole card is visible & capturable */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] grid place-items-center overflow-visible p-3">
+                  {/* Give the *card itself* an id; ShareButton will capture this element */}
+                  <CardPreview id={cardId} data={c.data} type={type} theme={theme} showPlaceholders={false} />
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
@@ -105,14 +103,14 @@ export default function MyCards() {
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  {/* Share (green) */}
+                  {/* Share (captures the full card now) */}
                   <ShareButton
-                    targetId={captureId}
+                    targetId={cardId}
                     headline={who}
-                    website="https://instantllycards.com"
+                    website="https://instantlycards.com"
                     className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium bg-green-500 hover:bg-green-400 text-black shadow"
                   />
-                  {/* Edit (yellow) */}
+                  {/* Edit */}
                   <button className="btn btn-gold" onClick={() => handleEdit(c)}>Edit</button>
                 </div>
 
@@ -128,7 +126,7 @@ export default function MyCards() {
         </div>
       )}
 
-      {/* Quick preview modal */}
+      {/* Quick preview modal (unchanged visual; no sharing from here) */}
       {active && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/60" onClick={() => setActive(null)} />

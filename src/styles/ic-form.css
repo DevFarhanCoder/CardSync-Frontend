@@ -1,0 +1,76 @@
+/* Scoped form polish for the Card Builder
+   Uses your design tokens: --gold, --border, --text, --muted, --subtle
+   Attach by adding className="ic-form" on the form wrapper (already done)
+*/
+
+.ic-form .ic-label {
+  display: block;
+  font-size: 0.875rem;       /* text-sm */
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.9;
+  margin-bottom: 0.35rem;
+}
+
+/* Inputs/selects/textarea look */
+.ic-form .ic-input {
+  width: 100%;
+  border-radius: 0.9rem;     /* rounded-xl */
+  border: 1.5px solid var(--border);
+  background: #0b0f14;       /* near-black field */
+  color: var(--text);        /* readable text */
+  padding: 0.6rem 0.8rem;
+  line-height: 1.4;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.ic-form .ic-input::placeholder {
+  color: var(--subtle);
+  opacity: 0.6;
+}
+
+/* Focus / active — bright gold outline */
+.ic-form .ic-input:focus,
+.ic-form .ic-input:active {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25); /* gold glow */
+}
+
+/* Section visuals */
+.ic-form .ic-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.ic-form .ic-divider {
+  height: 1px;
+  margin: 1.25rem 0;
+  background: var(--border);
+}
+
+/* Buttons: slightly larger radius for this page */
+.ic-form .btn,
+.ic-form .btn-gold {
+  border-radius: 1rem;
+}
+
+/* Make selects look consistent in dark fields on WebKit */
+.ic-form select.ic-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: none;
+}
+
+/* Textarea height comfort */
+.ic-form textarea.ic-input {
+  min-height: 2.75rem;
+}
+
+/* Improve label contrast on very dark themes */
+@media (prefers-color-scheme: dark) {
+  .ic-form .ic-label { opacity: 0.95; }
+}

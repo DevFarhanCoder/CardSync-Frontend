@@ -1,341 +1,670 @@
-// src/pages/dashboard/CardBuilder.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import CardPreview, { CardData, CardType, Theme, SocialLinks } from "@/components/CardPreview";
-import { useAuth } from "@/context/AuthContext";
+import { useLocation, useNavigate } from "react-router-dom";
+import { nanoid } from "nanoid";
+import CardPreview from "@/components/CardPreview";
+import {
+  CardData,
+  CardType,
+  DEFAULT_CARD_TYPE,
+  filterCardByType,
+  normalizeType,
+  validateCard,
+} from "@/lib/cardTypes";
 import { api } from "@/lib/api";
+import "@/styles/ic-form.css";
 
-type FieldKey =
-  | "name" | "email" | "phone" | "address" | "logoUrl" | "website"
-  | "tagline" | "role" | "eventDate" | "eventVenue";
+type Saved = { id: string; dbId?: string | null; createdAt: string; data: CardData };
 
-type TypeConfig = {
-  required: FieldKey[];
-  optional: FieldKey[];
-  requiresRootTitle?: boolean;
-};
+const THEMES = [
+  { value: "luxe", label: "Luxe (Black/Gold)" },
+  { value: "minimal", label: "Minimal (Light)" },
+  { value: "tech", label: "Tech (Indigo)" },
+];
 
-const TYPE_FIELDS: Record<CardType, TypeConfig> = {
-  business:  { required: ["name", "email", "phone", "address"], optional: ["logoUrl", "website", "role"] },
-  personal:  { required: ["name", "email", "phone"], optional: ["logoUrl", "website", "role", "address", "tagline"] },
-  portfolio: { required: ["name", "email", "website"], optional: ["logoUrl", "tagline", "phone", "role", "address"] },
-  event:     { required: ["eventDate", "eventVenue"], optional: ["name", "website", "phone", "email", "logoUrl"], requiresRootTitle: true },
-};
-
-function isVisible(type: CardType, key: FieldKey): boolean {
-  const cfg = TYPE_FIELDS[type];
-  return cfg.required.includes(key) || cfg.optional.includes(key);
-}
+const TYPES: Array<{ value: CardType; label: string }> = [
+  { value: "business", label: "Business" },
+  { value: "personal", label: "Personal" },
+];
 
 export default function CardBuilder() {
-  const location = useLocation();
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const { token: ctxToken } = useAuth() ?? { token: undefined };
+  const nav = useNavigate();
+  const loc = useLocation() as any;
 
-  const editingLocalId = params.get("id") ?? (location as any).state?.id ?? null;
+  const [id, setId] = useState<string>(
+    () =>
+      loc.state?.id ||
+      new URLSearchParams(location.search).get("id") ||
+      nanoid(8)
+  );
 
-  const [title, setTitle] = useState("");
-  const [theme, setTheme] = useState<Theme>("luxe");
-  const [type, setType] = useState<CardType>("business");
+  const [data, setData] = useState<CardData>(
+    () =>
+      (loc.state?.data as CardData) || {
+        type: DEFAULT_CARD_TYPE,
+        theme: "luxe",
+        title: "Card Title",
+        socials: {},
+        extra: {},
+      }
+  );
 
-  const [form, setForm] = useState<Record<FieldKey, string>>({
-    name: "", email: "", phone: "", address: "", logoUrl: "", website: "",
-    tagline: "", role: "", eventDate: "", eventVenue: "",
-  });
+  const [toast, setToast] = useState<string | null>(null);
+  const token = localStorage.getItem("token");
 
-  const [socials, setSocials] = useState<SocialLinks>({
-    linkedin: "", twitter: "", instagram: "", facebook: "", youtube: "", github: "", whatsapp: "",
-  });
+  const type = normalizeType(data.type);
+  const theme = (data.theme || "luxe") as string;
+  const view = useMemo(() => filterCardByType(data, type), [data, type]);
 
-  const [keywordsRaw, setKeywordsRaw] = useState("");
-  const [dbId, setDbId] = useState<string | null>(null); // Mongo _id
-  const token = ctxToken || localStorage.getItem("token") || undefined;
+  /** helpers */
+  const update = <K extends keyof CardData>(key: K, value: CardData[K]) =>
+    setData((prev) => ({ ...prev, [key]: value }));
 
-  // hydrate if editing
-  useEffect(() => {
-    if (!editingLocalId) return;
-    const raw = localStorage.getItem("cards");
-    const arr: any[] = raw ? JSON.parse(raw) : [];
-    const found = arr.find((x) => x.id === editingLocalId);
-    if (!found) return;
+  const updateSocial = (
+    k: keyof NonNullable<CardData["socials"]>,
+    v: string
+  ) =>
+    setData((prev) => ({
+      ...prev,
+      socials: { ...(prev.socials || {}), [k]: v },
+    }));
 
-    const d = found.data || {};
-    setDbId(found.dbId || null);
-
-    setTitle(d.title ?? "Card Title");
-    setTheme((d.theme as Theme) ?? "luxe");
-    setType((d.type as CardType) ?? "business");
-
-    setForm({
-      name: d.name ?? "", email: d.email ?? "", phone: d.phone ?? "", address: d.address ?? "",
-      logoUrl: d.logoUrl ?? "", website: d.website ?? "", tagline: d.tagline ?? "", role: d.role ?? "",
-      eventDate: d.eventDate ?? "", eventVenue: d.eventVenue ?? "",
-    });
-
-    setSocials({
-      linkedin: d.socials?.linkedin ?? "", twitter: d.socials?.twitter ?? "", instagram: d.socials?.instagram ?? "",
-      facebook: d.socials?.facebook ?? "", youtube: d.socials?.youtube ?? "", github: d.socials?.github ?? "", whatsapp: d.socials?.whatsapp ?? "",
-    });
-
-    if (Array.isArray(d.keywords)) setKeywordsRaw(d.keywords.join(", "));
-  }, [editingLocalId]);
-
-  const data: CardData = useMemo(() => ({
-    title, type, theme,
-    name: form.name, email: form.email, phone: form.phone, address: form.address,
-    logoUrl: form.logoUrl, website: form.website, tagline: form.tagline, role: form.role,
-    eventDate: form.eventDate, eventVenue: form.eventVenue, socials,
-  }), [title, type, theme, form, socials]);
-
-  const reqOk = useMemo(() => {
-    const cfg = TYPE_FIELDS[type];
-    const baseOk = cfg.required.every((k) => form[k].trim().length > 0);
-    const titleOk = cfg.requiresRootTitle ? title.trim().length > 0 : true;
-    return baseOk && titleOk;
-  }, [type, form, title]);
-
-  const onChange  = (key: FieldKey, v: string) => setForm((f) => ({ ...f, [key]: v }));
-  const onSocial  = (key: keyof SocialLinks, v: string) => setSocials((s) => ({ ...s, [key]: v }));
-
-  async function saveCard() {
-    const keywords = Array.from(
-      new Set(
-        keywordsRaw
-          .split(/[,\n]/g)
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean)
-      )
-    );
-
-    // Prepare backend-friendly payload
-    const payload = {
-      title,
-      theme,
-      data: {
-        type,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        address: form.address,
-        logoUrl: form.logoUrl,
-        website: form.website,
-        tagline: form.tagline,
-        role: form.role,
-        eventDate: form.eventDate,
-        eventVenue: form.eventVenue,
-        socials,
-        keywords,
+  const updatePersonal = (
+    patch: Partial<NonNullable<CardData["extra"]>["personal"]>
+  ) =>
+    setData((p) => ({
+      ...p,
+      extra: {
+        ...(p.extra || {}),
+        personal: { ...(p.extra?.personal || {}), ...patch },
       },
-    };
+    }));
+
+  const updateCompany = (
+    patch: Partial<NonNullable<CardData["extra"]>["company"]>
+  ) =>
+    setData((p) => ({
+      ...p,
+      extra: {
+        ...(p.extra || {}),
+        company: { ...(p.extra?.company || {}), ...patch },
+      },
+    }));
+
+  const showToast = (m: string) => {
+    setToast(m);
+    setTimeout(() => setToast(null), 1800);
+  };
+
+  const readSavedList = (): Saved[] => {
+    const raw = localStorage.getItem("cards");
+    return raw ? JSON.parse(raw) : [];
+  };
+
+  const writeSavedList = (arr: Saved[]) => {
+    localStorage.setItem("cards", JSON.stringify(arr));
+  };
+
+  const upsertLocal = (partial?: { dbId?: string | null }) => {
+    const arr = readSavedList();
+    const exists = arr.find((x) => x.id === id);
+    const record: Saved = exists
+      ? { ...exists, data, ...(partial || {}) }
+      : { id, createdAt: new Date().toISOString(), data, ...(partial || {}) };
+    const next = exists ? arr.map((x) => (x.id === id ? record : x)) : [record, ...arr];
+    writeSavedList(next);
+    return record;
+  };
+
+  /** Save locally; if token exists also sync to backend */
+  /** Save locally; if token exists also sync to backend */
+  const onSave = async () => {
+    const { ok, missing } = validateCard(data, type);
+    if (!ok) {
+      showToast(`Missing: ${missing.join(", ")}`);
+      return;
+    }
+
+    const localRecord = upsertLocal();
 
     if (!token) {
-      alert("Please sign in to sync your card.");
-      upsertLocalOnly({ data, keywords });
-      return navigate("/dashboard/cards");
+      showToast("Saved locally");
+      nav("/dashboard/cards"); // ✅ redirect after local save
+      return;
     }
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      headers.Authorization = `Bearer ${token}`;
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
 
-      let res: Response;
+      let dbId = localRecord.dbId || null;
+
       if (dbId) {
-        // Server exposes PUT /api/cards/:id
-        res = await fetch(api(`/cards/${dbId}`), {
+        const res = await fetch(api(`/cards/${dbId}`), {
           method: "PUT",
           headers,
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            title: data.title || "Untitled",
+            theme: data.theme || "luxe",
+            data,
+            isPublic: false,
+          }),
         });
+        if (!res.ok) throw new Error("Failed to sync (update)");
+        const j = await res.json();
+        dbId = j?.card?._id || dbId;
       } else {
-        res = await fetch(api("/cards"), {
+        const res = await fetch(api("/cards"), {
           method: "POST",
           headers,
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            title: data.title || "Untitled",
+            theme: data.theme || "luxe",
+            data,
+            isPublic: false,
+          }),
         });
+        if (!res.ok) throw new Error("Failed to sync (create)");
+        const j = await res.json();
+        dbId = j?.card?._id || null;
       }
 
-      const json: any = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        alert("Session expired. Please sign in again.");
-        upsertLocalOnly({ data, keywords });
-        return navigate("/signin");
-      }
+      upsertLocal({ dbId });
+      showToast("Synced");
 
-      if (!res.ok) {
-        console.error("Card save failed:", json);
-        upsertLocalOnly({ data, keywords });
-        return navigate("/dashboard/cards");
-      }
-
-      // accept either { _id } or { card: { _id } }
-      const newId = json?._id || json?.card?._id || dbId || null;
-      setDbId(newId);
-      upsertLocalOnly({ data, keywords, dbId: newId });
-      navigate("/dashboard/cards");
+      // ✅ redirect after sync
+      nav("/dashboard/cards");
     } catch (e) {
-      console.warn("Backend unreachable, saving locally only.", e);
-      upsertLocalOnly({ data, keywords });
-      navigate("/dashboard/cards");
+      console.error(e);
+      showToast("Saved locally (sync failed)");
+      nav("/dashboard/cards"); // ✅ still redirect even if sync fails
     }
-  }
+  };
+  const onSaveAndExit = async () => {
+    await onSave();
+    nav("/dashboard/cards");
+  };
 
-  function upsertLocalOnly({
-    data,
-    keywords,
-    dbId,
-  }: {
-    data: CardData;
-    keywords: string[];
-    dbId?: string | null;
-  }) {
-    const localId = editingLocalId || Date.now().toString();
-    const payload = {
-      id: localId,
-      dbId: dbId ?? null,
-      createdAt: new Date().toISOString(),
-      data: { ...data, keywords },
-    };
-
-    const existingRaw = localStorage.getItem("cards");
-    const arr: any[] = existingRaw ? JSON.parse(existingRaw) : [];
-    const idx = arr.findIndex((x) => x.id === localId);
-    if (idx >= 0) {
-      (payload as any).createdAt = arr[idx].createdAt || (payload as any).createdAt;
-      arr[idx] = payload;
-    } else {
-      arr.unshift(payload);
-    }
-    localStorage.setItem("cards", JSON.stringify(arr));
-  }
+  useEffect(() => {
+    if (loc.state?.id) setId(loc.state.id);
+  }, [loc.state?.id]);
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
-      <div className="card p-6 lg:col-span-2 min-h-[500px]">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">{editingLocalId ? "Edit Card" : "Canvas"}</h3>
-          {dbId && <span className="chip">Synced</span>}
-        </div>
-        <div className="mt-3 grid place-items-center h-[420px] border border-[var(--border)] rounded-xl bg-[var(--muted)] text-[var(--subtle)]">
-          <CardPreview data={data} />
-        </div>
+    <div className="grid lg:grid-cols-[420px,1fr] gap-6">
+      {/* Preview */}
+      <div className="card p-4">
+        <CardPreview
+          id="builder-card"
+          data={view}
+          type={type}
+          theme={theme}
+          showPlaceholders
+        />
       </div>
 
-      <div className="card p-6 space-y-4">
-        <h3 className="font-semibold">Properties</h3>
+      {/* Form — styled by ic-form.css */}
+      <div className="card p-6 ic-form">
+        <div className="text-base font-semibold mb-4">Properties</div>
 
-        <div className="grid grid-cols-1 gap-3">
+        {/* ---------- BASICS ---------- */}
+        <div className="space-y-4">
           <div>
-            <label className="text-sm">Title</label>
+            <label className="ic-label">Title</label>
             <input
-              className="mt-1 w-full rounded-xl bg-[var(--muted)] text-[var(--text)] border border-[var(--border)] px-3 py-2"
+              className="input ic-input"
               placeholder="Card Title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              value={data.title || ""}
+              onChange={(e) => update("title", e.target.value)}
             />
           </div>
 
-          <div>
-            <label className="text-sm">Theme</label>
-            <select
-              className="mt-1 w-full rounded-xl bg-[var(--muted)] text-[var(--text)] border border-[var(--border)] px-3 py-2"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value as Theme)}
-            >
-              <option value="luxe">Luxe (Black/Gold)</option>
-              <option value="minimal">Minimal (Light)</option>
-              <option value="tech">Tech (Indigo)</option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="ic-label">Theme</label>
+              <select
+                className="input ic-input"
+                value={theme}
+                onChange={(e) => update("theme", e.target.value)}
+              >
+                {THEMES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="ic-label">Type of Card</label>
+              <select
+                className="input ic-input"
+                value={type}
+                onChange={(e) => update("type", e.target.value as CardType)}
+              >
+                {TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="ic-label">Name</label>
+              <input
+                className="input ic-input"
+                value={data.name || ""}
+                onChange={(e) => update("name", e.target.value)}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-sm">Type of Card</label>
-            <select
-              className="mt-1 w-full rounded-xl bg-[var(--muted)] text-[var(--text)] border border-[var(--border)] px-3 py-2"
-              value={type}
-              onChange={(e) => setType(e.target.value as CardType)}
-            >
-              <option value="business">Business</option>
-              <option value="personal">Personal Profile</option>
-              <option value="portfolio">Portfolio</option>
-              <option value="event">Event / Invite</option>
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="ic-label">Role / Title</label>
+              <input
+                className="input ic-input"
+                value={data.role || ""}
+                onChange={(e) => update("role", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Email</label>
+              <input
+                className="input ic-input"
+                value={data.email || ""}
+                onChange={(e) => update("email", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Phone No.</label>
+              <input
+                className="input ic-input"
+                value={data.phone || ""}
+                onChange={(e) => update("phone", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <label className="ic-label">Address</label>
+              <input
+                className="input ic-input"
+                value={data.address || ""}
+                onChange={(e) => update("address", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Google Maps link</label>
+              <input
+                className="input ic-input"
+                placeholder="https://maps.google.com/…"
+                value={data.addressMap || ""}
+                onChange={(e) => update("addressMap", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="ic-label">Website</label>
+              <input
+                className="input ic-input"
+                placeholder="https://…"
+                value={data.website || ""}
+                onChange={(e) => update("website", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Logo URL (optional)</label>
+              <input
+                className="input ic-input"
+                placeholder="https://…/logo.png"
+                value={data.logoUrl || ""}
+                onChange={(e) => update("logoUrl", e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="space-y-3 pt-2">
-          {isVisible(type, "name")     && <Field label="Name" value={form.name} onChange={(v) => onChange("name", v)} />}
-          {isVisible(type, "role")     && <Field label="Role / Title" value={form.role} onChange={(v) => onChange("role", v)} />}
-          {isVisible(type, "email")    && <Field label="Email" type="email" value={form.email} onChange={(v) => onChange("email", v)} />}
-          {isVisible(type, "phone")    && <Field label="Phone No." value={form.phone} onChange={(v) => onChange("phone", v)} />}
-          {isVisible(type, "address")  && <Field label="Address" value={form.address} onChange={(v) => onChange("address", v)} />}
-          {isVisible(type, "website")  && <Field label="Website" placeholder="https://…" value={form.website} onChange={(v) => onChange("website", v)} />}
-          {isVisible(type, "tagline")  && <Field label="Tagline" value={form.tagline} onChange={(v) => onChange("tagline", v)} />}
-          {isVisible(type, "logoUrl")  && <Field label="Logo URL (optional)" placeholder="https://…/logo.png" value={form.logoUrl} onChange={(v) => onChange("logoUrl", v)} />}
+        <div className="ic-divider" />
 
-          {type === "event" && (
-            <>
-              <Field label="Event Date & Time" placeholder="e.g., 21 Sep 2025, 7:00 PM" value={form.eventDate} onChange={(v) => onChange("eventDate", v)} />
-              <Field label="Venue" value={form.eventVenue} onChange={(v) => onChange("eventVenue", v)} />
-            </>
-          )}
-        </div>
+        {/* ---------- PERSONAL (only for Personal type) ---------- */}
+        {type === "personal" && (
+          <div className="space-y-4">
+            <div className="ic-section-title">Personal</div>
 
-        <div className="pt-4 border-t border-[var(--border)]">
-          <h4 className="font-medium mb-2">Social Links</h4>
-          <div className="grid grid-cols-1 gap-3">
-            <Field label="LinkedIn (username or URL)" value={socials.linkedin || ""} onChange={(v) => onSocial("linkedin", v)} />
-            <Field label="Twitter/X (handle or URL)"     value={socials.twitter   || ""} onChange={(v) => onSocial("twitter", v)} />
-            <Field label="Instagram"                     value={socials.instagram || ""} onChange={(v) => onSocial("instagram", v)} />
-            <Field label="Facebook"                      value={socials.facebook  || ""} onChange={(v) => onSocial("facebook", v)} />
-            <Field label="YouTube"                       value={socials.youtube   || ""} onChange={(v) => onSocial("youtube", v)} />
-            <Field label="GitHub"                        value={socials.github    || ""} onChange={(v) => onSocial("github", v)} />
-            <Field label="WhatsApp (number or URL)"      value={socials.whatsapp  || ""} onChange={(v) => onSocial("whatsapp", v)} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Photo URL</label>
+                <input
+                  className="input ic-input"
+                  placeholder="https://…/photo.jpg"
+                  value={data.extra?.personal?.photoUrl || ""}
+                  onChange={(e) => updatePersonal({ photoUrl: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="ic-label">Gender</label>
+                <select
+                  className="input ic-input"
+                  value={data.extra?.personal?.gender || ""}
+                  onChange={(e) =>
+                    updatePersonal({ gender: e.target.value as any })
+                  }
+                >
+                  <option value="">Select</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label className="ic-label">Birth Date</label>
+                <input
+                  type="date"
+                  className="input ic-input"
+                  value={data.extra?.personal?.birthDate || ""}
+                  onChange={(e) =>
+                    updatePersonal({ birthDate: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Anniversary Date</label>
+                <input
+                  type="date"
+                  className="input ic-input"
+                  value={data.extra?.personal?.anniversaryDate || ""}
+                  onChange={(e) =>
+                    updatePersonal({ anniversaryDate: e.target.value })
+                  }
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="ic-label">Education Details</label>
+                <textarea
+                  rows={2}
+                  className="input ic-input"
+                  value={data.extra?.personal?.education || ""}
+                  onChange={(e) =>
+                    updatePersonal({ education: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="ic-label">Res Address</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.personal?.resAddress || ""}
+                  onChange={(e) =>
+                    updatePersonal({ resAddress: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Pincode</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.personal?.pincode || ""}
+                  onChange={(e) => updatePersonal({ pincode: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Maps link</label>
+                <input
+                  className="input ic-input"
+                  placeholder="https://maps.google.com/…"
+                  value={data.extra?.personal?.mapsLink || ""}
+                  onChange={(e) =>
+                    updatePersonal({ mapsLink: e.target.value })
+                  }
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="ic-label">Message</label>
+                <textarea
+                  rows={2}
+                  className="input ic-input"
+                  value={data.extra?.personal?.message || ""}
+                  onChange={(e) =>
+                    updatePersonal({ message: e.target.value })
+                  }
+                />
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[var(--subtle)] mt-2">Paste full URLs or just usernames/phone — we’ll auto-format the links on the card.</p>
+        )}
+
+        {/* ---------- COMPANY (only for Business type) ---------- */}
+        {type === "business" && (
+          <div className="space-y-4">
+            <div className="ic-section-title">Company</div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Company Name</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.companyName || ""}
+                  onChange={(e) =>
+                    updateCompany({ companyName: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Logo URL</label>
+                <input
+                  className="input ic-input"
+                  placeholder="https://…/logo.png"
+                  value={data.extra?.company?.companyLogo || ""}
+                  onChange={(e) =>
+                    updateCompany({ companyLogo: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Designation</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.designation || ""}
+                  onChange={(e) =>
+                    updateCompany({ designation: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Business Category</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.category || ""}
+                  onChange={(e) =>
+                    updateCompany({ category: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Company Mob No</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.companyMobile || ""}
+                  onChange={(e) =>
+                    updateCompany({ companyMobile: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Email ID</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.email || ""}
+                  onChange={(e) => updateCompany({ email: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="ic-label">Co Address</label>
+                <input
+                  className="input ic-input"
+                  value={data.extra?.company?.address || ""}
+                  onChange={(e) =>
+                    updateCompany({ address: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <label className="ic-label">Maps link</label>
+                <input
+                  className="input ic-input"
+                  placeholder="https://maps.google.com/…"
+                  value={data.extra?.company?.mapsLink || ""}
+                  onChange={(e) =>
+                    updateCompany({ mapsLink: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="ic-label">Website</label>
+                <input
+                  className="input ic-input"
+                  placeholder="https://…"
+                  value={data.extra?.company?.website || ""}
+                  onChange={(e) =>
+                    updateCompany({ website: e.target.value })
+                  }
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="ic-label">Message</label>
+                <textarea
+                  rows={2}
+                  className="input ic-input"
+                  value={data.extra?.company?.message || ""}
+                  onChange={(e) =>
+                    updateCompany({ message: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="ic-divider" />
+
+        {/* ---------- SOCIAL LINKS ---------- */}
+        <div className="space-y-4">
+          <div className="ic-section-title">Social Links</div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="ic-label">LinkedIn (username or URL)</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.linkedin || ""}
+                onChange={(e) => updateSocial("linkedin", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Twitter/X (handle or URL)</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.twitter || ""}
+                onChange={(e) => updateSocial("twitter", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="ic-label">Instagram</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.instagram || ""}
+                onChange={(e) => updateSocial("instagram", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Facebook</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.facebook || ""}
+                onChange={(e) => updateSocial("facebook", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="ic-label">YouTube</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.youtube || ""}
+                onChange={(e) => updateSocial("youtube", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">GitHub</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.github || ""}
+                onChange={(e) => updateSocial("github", e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="ic-label">WhatsApp (number or URL)</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.whatsapp || ""}
+                onChange={(e) => updateSocial("whatsapp", e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="ic-label">Telegram (@username or URL)</label>
+              <input
+                className="input ic-input"
+                value={data.socials?.telegram || ""}
+                onChange={(e) => updateSocial("telegram", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-[var(--subtle)]">
+            Paste full URLs or just usernames/phone — we’ll auto-format on the card.
+          </p>
         </div>
 
-        <div className="pt-4 border-t border-[var(--border)]">
-          <h4 className="font-medium mb-2">Keywords</h4>
-          <textarea
-            rows={2}
-            className="w-full rounded-xl bg-[var(--muted)] text-[var(--text)] border border-[var(--border)] px-3 py-2"
-            placeholder="e.g., product manager, fintech, react, design"
-            value={keywordsRaw}
-            onChange={(e) => setKeywordsRaw(e.target.value)}
-          />
-          <p className="text-xs text-[var(--subtle)] mt-1">Separate with commas. These help others find this card in Explore.</p>
-        </div>
-
-        <button
-          className={`btn w-full ${reqOk ? "btn-gold" : "opacity-60 cursor-not-allowed"}`}
-          disabled={!reqOk}
-          onClick={saveCard}
-        >
-          Save
-        </button>
-
-        <div className="text-xs text-[var(--subtle)]">
-          Required fields change with card type. Logo & Website are optional for all types.
+        {/* ---------- ACTIONS ---------- */}
+        <div className="mt-6 flex gap-2">
+          <button className="btn btn-gold rounded-2xl" onClick={onSave}>
+            Save
+          </button>
+          <button className="btn rounded-2xl" onClick={onSaveAndExit}>
+            Save &amp; Exit
+          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-function Field({
-  label, value, onChange, type = "text", placeholder,
-}: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
-  return (
-    <div>
-      <label className="text-sm">{label}</label>
-      <input
-        className="mt-1 w-full rounded-xl bg-[var(--muted)] text-[var(--text)] border border-[var(--border)] px-3 py-2"
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[70]">
+          <div className="bg-black/90 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

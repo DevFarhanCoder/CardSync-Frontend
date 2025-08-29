@@ -25,7 +25,7 @@ const defaultExtra =
 export default function ShareButton({
   targetId,
   headline,
-  website = "https://instantlycards.com",
+  website = "https://instantllycards.com",
   extra = defaultExtra,
   className,
   openWAAfterShare = true,

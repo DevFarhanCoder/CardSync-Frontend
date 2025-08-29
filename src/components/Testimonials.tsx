@@ -4,7 +4,7 @@ export default function Testimonials() {
       name: 'Tara Wilson',
       role: 'Head of Sales, Auraline',
       quote:
-        'We replaced paper cards across 240 reps. CardSync’s QR + CRM sync increased captured leads by 31%.',
+        'We replaced paper cards across 240 reps. Instantlly-Cards QR + CRM sync increased captured leads by 31%.',
     },
     {
       name: 'Miguel Santos',

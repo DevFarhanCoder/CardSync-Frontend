@@ -8,6 +8,7 @@ import SignIn from '@/pages/auth/SignIn'
 import SignUp from '@/pages/auth/SignUp'
 import DashboardLayout from '@/layouts/DashboardLayout'
 import Overview from '@/pages/dashboard/Overview'
+import NewCard from "@/pages/cards/NewCard";
 import MyCards from '@/pages/dashboard/MyCards'
 import CardBuilder from '@/pages/dashboard/CardBuilder'
 import Analytics from '@/pages/dashboard/Analytics'
@@ -40,11 +41,11 @@ export default function App() {
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/demo" element={<Demo />} />
 
-      {/* 🔥 public nav to Explore */}
+      {/* public */}
       <Route path="/explore" element={<Explore />} />
       <Route path="/u/:ownerId" element={<PublicProfile />} />
 
-      {/* 🔒 share route requires auth */}
+      {/* share (auth) */}
       <Route path="/share/:id" element={<RequireAuth><ShareCard /></RequireAuth>} />
 
       <Route path="/signin" element={<RequireAnon><SignIn /></RequireAnon>} />
@@ -53,6 +54,8 @@ export default function App() {
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<Overview />} />
+        {/* ✅ make this RELATIVE since it's nested under /dashboard */}
+        <Route path="cards/new" element={<NewCard />} />
         <Route path="cards" element={<MyCards />} />
         <Route path="builder" element={<CardBuilder />} />
         <Route path="analytics" element={<Analytics />} />
@@ -64,6 +67,9 @@ export default function App() {
         <Route path="billing" element={<Billing />} />
         <Route path="support" element={<Support />} />
       </Route>
+
+      {/* catch-all */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

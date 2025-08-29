@@ -12,7 +12,7 @@ const STEPS = [
 export default function FlowChart() {
   return (
     <section className="container py-14">
-      <h3 className="text-center text-2xl md:text-3xl font-semibold">How CardSync Flows from Hello → Customer</h3>
+      <h3 className="text-center text-2xl md:text-3xl font-semibold">How Instantlly-Cards Flows from Hello → Customer</h3>
 
       <div className="relative mt-10 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
         {/* SVG connectors */}

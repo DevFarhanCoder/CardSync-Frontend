@@ -59,7 +59,7 @@ export default function SignIn() {
   );
 
   useEffect(() => {
-    document.title = "Sign in • CardSync";
+    document.title = "Sign in • Instantlly-Cards";
   }, []);
 
   async function onSubmit(e: React.FormEvent) {

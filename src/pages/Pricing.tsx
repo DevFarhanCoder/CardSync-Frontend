@@ -21,7 +21,7 @@ export default function Pricing() {
           <div className="text-center">
             <span className="chip">Social proof</span>
             <h2 className="mt-3 text-3xl font-semibold">
-              Over <span className="text-[var(--gold)]">2 Million</span> Professionals Choose CardSync
+              Over <span className="text-[var(--gold)]">2 Million</span> Professionals Choose Instantlly-Cards
             </h2>
             <p className="mt-2 text-[var(--subtle)]">
               Enterprise-grade reliability with consumer-grade polish—trusted worldwide by individuals and teams.

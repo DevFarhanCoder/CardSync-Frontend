@@ -86,7 +86,7 @@ export default function TrustedCarousel() {
     <section className="py-14 full-bleed">
       <div className="mx-auto max-w-[1400px] px-4">
         <h3 className="text-center text-2xl md:text-3xl font-semibold">
-          Over 2 Million Professionals Choose CardSync
+          Over 2 Million Professionals Choose Instantlly-Cards
         </h3>
       </div>
 

@@ -33,7 +33,7 @@ const PLANS: Plan[] = [
       'Community support',
     ],
     long:
-      'Everything you need to launch a professional digital card. Great for testing CardSync and sharing with friends or colleagues before you scale.',
+      'Everything you need to launch a professional digital card. Great for testing Instantlly-Cards and sharing with friends or colleagues before you scale.',
   },
   {
     key: 'pro',

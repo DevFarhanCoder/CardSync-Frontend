@@ -30,7 +30,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-[var(--border)] py-6 text-center text-sm text-[var(--subtle)]">
-        © 2025 CardSync. All rights reserved.
+        © 2025 Instantlly-Cards. All rights reserved.
       </div>
     </footer>
   )

@@ -10,7 +10,7 @@ const ITEMS: TItem[] = [
     city: 'Austin, TX',
     avatar: 'https://ui-avatars.com/api/?name=Tara+Wilson&background=151A21&color=D4AF37',
     quote:
-      'We replaced paper cards across 240 reps. CardSync’s QR + CRM sync increased captured leads by 31%.',
+      'We replaced paper cards across 240 reps. Instantlly-Cards QR + CRM sync increased captured leads by 31%.',
   },
   {
     name: 'Miguel Santos',

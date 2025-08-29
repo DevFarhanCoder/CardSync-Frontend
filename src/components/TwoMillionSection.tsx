@@ -28,7 +28,7 @@ export default function TwoMillionSection() {
           id="two-million"
           className="text-2xl md:text-3xl font-semibold tracking-tight"
         >
-          Over <span className="text-[var(--gold)]">2 Million</span> Professionals Choose CardSync
+          Over <span className="text-[var(--gold)]">2 Million</span> Professionals Choose Instantlly-Cards
         </h2>
 
         <p className="mt-2 text-[var(--subtle)]">

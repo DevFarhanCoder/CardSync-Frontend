@@ -4,7 +4,7 @@ export default function Logo({ className = "" }: { className?: string }) {
       <div className="grid h-8 w-8 place-items-center rounded-xl border border-[var(--gold)] bg-[var(--muted)] text-[var(--gold)] font-bold">
         CS
       </div>
-      <span className="text-lg font-semibold tracking-wide">CardSync</span>
+      <span className="text-lg font-semibold tracking-wide">Instantlly-Cards</span>
     </div>
   )
 }

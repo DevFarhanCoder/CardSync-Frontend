@@ -63,7 +63,7 @@ export default function PricingDemoForm() {
             </div>
             <h2 className="text-3xl md:text-4xl font-bold">Get a Demo</h2>
             <p className="text-[var(--subtle)] mt-2">
-              See CardSync in action—lead capture, analytics, CRM sync, and governance controls.
+              See Instantlly-Cards in action—lead capture, analytics, CRM sync, and governance controls.
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export default function PricingDemoForm() {
             <div className="flex items-center gap-2">
               <input id="agree" type="checkbox" checked={data.agree} onChange={e => update('agree', e.target.checked)} className="h-4 w-4 rounded border-[var(--border)] bg-[var(--surface)]" />
               <label htmlFor="agree" className="text-sm text-[var(--subtle)]">
-                I agree to be contacted about the demo and CardSync updates.
+                I agree to be contacted about the demo and Instantlly-Cards updates.
               </label>
             </div>
 

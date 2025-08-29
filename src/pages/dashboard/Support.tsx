@@ -14,7 +14,7 @@ export default function Support() {
         </div>
         <div className="glass p-4 rounded-2xl">
           <div className="font-semibold">Contact</div>
-          <p className="text-sm text-[var(--subtle)]">support@cardsync.app</p>
+          <p className="text-sm text-[var(--subtle)]">support@Instantlly-Cards.app</p>
         </div>
       </div>
     </div>

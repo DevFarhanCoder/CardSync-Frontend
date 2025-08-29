@@ -72,7 +72,7 @@ export default function Demo() {
             </div>
 
             <h1 className="text-4xl md:text-5xl font-bold">
-              See <span className="text-[var(--gold)]">CardSync</span> in action
+              See <span className="text-[var(--gold)]">Instantlly-Cards</span> in action
             </h1>
 
             <p className="text-[var(--subtle)] mt-3 max-w-xl">

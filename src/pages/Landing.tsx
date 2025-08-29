@@ -38,7 +38,7 @@ export default function Landing() {
   ];
 
   const faq = [
-    { q: "How is CardSync different from paper cards?", a: "Every interaction is trackable. Update details centrally and capture leads instantly with QR/NFC—no reprints needed." },
+    { q: "How is Instantlly-Cards different from paper cards?", a: "Every interaction is trackable. Update details centrally and capture leads instantly with QR/NFC—no reprints needed." },
     { q: "Can I use my own domain and branding?", a: "Yes. Upload logos, define fonts/colors, and assign custom subdomains such as cards.yourcompany.com." },
     { q: "Do you support large teams?", a: "SSO, SCIM provisioning, roles/permissions, bulk templates, audit logs, and playbooks help org-wide rollouts." },
     { q: "What about privacy?", a: "Granular visibility controls let you hide emails/phone by default, enforce approvals, and auto-expire links." },
@@ -105,7 +105,7 @@ export default function Landing() {
         </h1>
         <p className="mt-6 mx-auto max-w-3xl text-[var(--subtle)]">
           Create, share and manage premium digital business cards with live analytics, lead capture, and enterprise controls.
-          CardSync helps individuals and companies modernize their networking.
+          Instantlly-Cards helps individuals and companies modernize their networking.
         </p>
         <div className="mt-8 flex items-center justify-center gap-4">
           <button onClick={onStartTrial} className="btn btn-gold">Start Free Trial</button>
@@ -128,7 +128,7 @@ export default function Landing() {
 
       {/* Who it's for (title added) */}
       <section className="container py-10">
-        <h3 className="text-2xl md:text-3xl font-semibold mb-6 text-center">Who is CardSync for?</h3>
+        <h3 className="text-2xl md:text-3xl font-semibold mb-6 text-center">Who is Instantlly-Cards for?</h3>
         <div className="grid md:grid-cols-3 gap-6">
           {[
             { title: "Individuals & Creators", desc: "Premium personal card with social links, portfolio, booking & quick actions.", icon: CreditCard },
@@ -185,7 +185,7 @@ export default function Landing() {
       <section className="w-full bg-[var(--background)] py-16 text-center">
         <h3 className="text-3xl font-semibold">Ready to transform your networking?</h3>
         <p className="text-[var(--subtle)] mt-2">
-          Join thousands of professionals using CardSync to make better connections.
+          Join thousands of professionals using Instantlly-Cards to make better connections.
         </p>
         <div className="mt-6 flex gap-4 justify-center">
           <Link to="/pricing" className="btn btn-gold">See Pricing</Link>

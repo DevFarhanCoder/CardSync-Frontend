@@ -109,7 +109,7 @@ export default function MyCards() {
                   <ShareButton
                     targetId={captureId}
                     headline={who}
-                    website="https://instantlycards.com"
+                    website="https://instantllycards.com"
                     className="inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-medium bg-green-500 hover:bg-green-400 text-black shadow"
                   />
                   {/* Edit (yellow) */}

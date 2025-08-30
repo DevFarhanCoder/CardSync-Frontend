@@ -205,3 +205,9 @@ html { overflow-y: scroll; }
     overflow: hidden;
   }
 }
+
+/* src/styles/index.css */
+/* subtle reusable shadow */
+.card-shadow {
+  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+}

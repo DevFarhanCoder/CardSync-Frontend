@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
+import BottomAd from "@/components/BottomAd";
 import Footer from "@/components/Footer";
 import {
   Check, Zap, Shield, Smartphone, QrCode, Share2, Sparkles,
@@ -26,7 +27,6 @@ export default function Landing() {
   const [showWelcome, setShowWelcome] = useState<boolean>(() => {
     return sessionStorage.getItem("hideWelcome") !== "1";
   });
-
 
   const features = [
     { icon: Smartphone, title: "Mobile-First Sharing", desc: "Tap-to-share and QR-compatible cards. Works offline as PWA." },
@@ -81,7 +81,6 @@ export default function Landing() {
               }}
               className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-white/5"
             >
-              {/* use a simple × so you don't need new icon imports */}
               <span className="text-lg leading-none">×</span>
             </button>
 
@@ -90,12 +89,10 @@ export default function Landing() {
                 <h3 className="text-xl font-semibold">Welcome back, {user?.name} 👋</h3>
                 <p className="text-[var(--subtle)] text-sm">Manage your profile and account settings.</p>
               </div>
-              {/* buttons removed as requested */}
             </div>
           </div>
         </section>
       )}
-
 
       {/* Hero */}
       <section className="container pt-24 pb-12 text-center">
@@ -195,6 +192,25 @@ export default function Landing() {
 
       <FAQ items={faq} />
       <Footer />
+
+      {/* ---- Bottom Ad (fixed, dismissible). Pick one: image or text ---- */}
+      {/* ---- Bottom Ad: full-width Barter Adverts banner ---- */}
+      <BottomAd
+        href="https://barteradverts.com"
+        // Use your own hosted banner (recommended):
+        // imageUrl="/assets/ads/barter-adverts-banner.jpg"
+        // Temporary placeholder (black background + gold text):
+        imageUrl="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNM420o1AXGgbfZi5zl5wedW2W97H6-hu77Q&s"
+        alt="Barter Adverts — Swap & Save"
+        ttlHours={24}
+        showDelayMs={400}
+        height={{ mobile: 88, desktop: 120 }}
+      />
+
+      {/*
+      // Text banner version:
+      <BottomAd href="https://instantllycards.com/pricing" ttlHours={24} showDelayMs={400} />
+      */}
 
       {/* ---- Auth modal for guests (Start Free Trial) ---- */}
       {authOpen && (

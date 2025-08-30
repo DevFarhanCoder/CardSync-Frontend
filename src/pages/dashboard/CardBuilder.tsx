@@ -197,9 +197,7 @@ export default function CardBuilder() {
         <CardPreview
           id="builder-card"
           data={view}
-          type={type}
           theme={theme}
-          showPlaceholders
         />
       </div>
 

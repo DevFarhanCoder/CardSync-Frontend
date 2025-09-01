@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Route, Routes, Navigate } from 'react-router-dom'
 import Landing from '@/pages/Landing'
 import Features from '@/pages/Features'
@@ -7,8 +6,9 @@ import Demo from '@/pages/Demo'
 import SignIn from '@/pages/auth/SignIn'
 import SignUp from '@/pages/auth/SignUp'
 import DashboardLayout from '@/layouts/DashboardLayout'
+import Chat from "@/pages/dashboard/Chat";
 import Overview from '@/pages/dashboard/Overview'
-import NewCard from "@/pages/cards/NewCard";
+import NewCard from '@/pages/cards/NewCard'
 import MyCards from '@/pages/dashboard/MyCards'
 import CardBuilder from '@/pages/dashboard/CardBuilder'
 import Analytics from '@/pages/dashboard/Analytics'
@@ -21,7 +21,7 @@ import Marketplace from '@/pages/dashboard/Marketplace'
 import Support from '@/pages/dashboard/Support'
 import { useAuth } from '@/context/AuthContext'
 import Explore from '@/pages/Explore'
-import PublicProfile from "@/pages/PublicProfile";
+import PublicProfile from '@/pages/PublicProfile'
 import ShareCard from '@/pages/Share'
 
 function RequireAuth({ children }: { children: JSX.Element }) {
@@ -54,7 +54,7 @@ export default function App() {
       {/* Dashboard (protected) */}
       <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<Overview />} />
-        {/* ✅ make this RELATIVE since it's nested under /dashboard */}
+        <Route path="chat" element={<Chat />} />
         <Route path="cards/new" element={<NewCard />} />
         <Route path="cards" element={<MyCards />} />
         <Route path="builder" element={<CardBuilder />} />

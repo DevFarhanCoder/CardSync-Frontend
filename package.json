@@ -29,6 +29,7 @@
     "react-phone-input-2": "^2.15.1",
     "react-router-dom": "^6.27.0",
     "recharts": "^2.12.7",
+    "socket.io-client": "^4.8.1",
     "tailwind-merge": "^2.5.2"
   },
   "devDependencies": {

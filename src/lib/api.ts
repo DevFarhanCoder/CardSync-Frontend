@@ -8,7 +8,8 @@ export function api(path: string) {
 }
 
 // Only include Authorization when we truly have a token
-export function authHeaders() {
-  const t = localStorage.getItem("token");
-  return t && t !== "undefined" && t !== "null" ? { Authorization: `Bearer ${t}` } : {};
+export function authHeaders(token?: string) {
+  return {
+    Authorization: `Bearer ${token}`,
+  };
 }

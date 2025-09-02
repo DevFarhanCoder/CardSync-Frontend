@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api, authHeaders } from "@/lib/api";
-
-import CreateJoinButtons from "@/components/chat/CreateJoinButtons";
 import RoomList, { type Room } from "@/components/chat/RoomList";
 import MessageList from "@/components/chat/MessageList";
 import MessageInput from "@/components/chat/MessageInput";
 import GroupInfoDrawer from "@/components/chat/GroupInfoDrawer";
-import SharedPanel from "@/components/chat/SharedPanel";
 import Dropdown from "@/components/ui/Dropdown";
 import Modal from "@/components/ui/Modal";
 import Avatar from "@/components/ui/Avatar";
@@ -16,7 +13,6 @@ export type Message = {
   id: string;
   roomId: string;
   userId: string;
-  userName?: string;
   text: string;
   createdAt: number;
 };
@@ -26,113 +22,113 @@ export default function Chat() {
   const currentUserId = user?.id ?? null;
 
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [roomsLoading, setRoomsLoading] = useState(true);
-  const [roomsErr, setRoomsErr] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  const [msgErr, setMsgErr] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // UI state
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [showShared, setShowShared] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showRenameModal, setShowRenameModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false); // NEW
-  const [showJoinModal, setShowJoinModal] = useState(false);     // NEW
-  const [phone, setPhone] = useState("");
-  const [newName, setNewName] = useState("");
-  const [newRoomName, setNewRoomName] = useState("");            // NEW
-  const [newRoomCode, setNewRoomCode] = useState("");            // NEW
-
-  // helpers
-  const lastId = (arr: Message[]) => (arr.length ? arr[arr.length - 1].id : "");
-  const setRoomMessages = (roomId: string, items: Message[], replace = false) =>
-    setMessages((prev) => {
-      const old = prev[roomId] || [];
-      const merged = replace ? items : dedupe([...old, ...items]);
-      return { ...prev, [roomId]: merged.sort((a, b) => a.createdAt - b.createdAt) };
-    });
-  const dedupe = (arr: Message[]) => {
-    const s = new Set<string>();
-    return arr.filter((m) => (s.has(m.id) ? false : (s.add(m.id), true)));
-  };
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   // load rooms
   useEffect(() => {
-    let abort = false;
     (async () => {
-      setRoomsLoading(true);
       try {
-        const res = await fetch(api("/chat/rooms"), { headers: { ...authHeaders() } });
+       const res = await fetch(api("/chat/rooms"), { headers: { ...authHeaders() } });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load rooms");
-        if (!abort) {
+        if (res.ok) {
           setRooms(data);
           if (!activeId && data.length) setActiveId(data[0].id);
         }
-      } catch (e: any) { if (!abort) setRoomsErr(e.message); }
-      finally { if (!abort) setRoomsLoading(false); }
+      } catch (e) {
+        console.error(e);
+      }
     })();
-    return () => { abort = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // poll messages
-  useEffect(() => {
-    if (!activeId) return;
-    if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; }
-    let stopped = false, fetching = false;
-    const tick = async () => {
-      if (fetching || stopped) return;
-      fetching = true;
-      try {
-        const after = lastId(messages[activeId] || []);
-        const url = new URL(api(`/chat/rooms/${activeId}/messages`), window.location.origin);
-        if (after) url.searchParams.set("after", after);
-        const res = await fetch(url.toString().replace(window.location.origin, ""), { headers: { ...authHeaders() } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to load messages");
-        const items = Array.isArray(data.items) ? data.items : [];
-        if (items.length) setRoomMessages(activeId, items);
-      } catch (e: any) { setMsgErr(e.message || "Failed to load messages"); }
-      finally { fetching = false; }
-    };
-    tick();
-    pollingRef.current = setInterval(tick, 2500);
-    return () => { stopped = true; if (pollingRef.current) { clearInterval(pollingRef.current); pollingRef.current = null; } };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeId]);
 
-  // actions
-  async function handleCreateRoom() {
-    if (!newRoomName.trim() || !newRoomCode.trim()) return;
+  // leave group
+  async function handleLeaveGroup() {
+    if (!activeId) return;
+    const res = await fetch(api(`/groups/${activeId}/leave`), {
+      method: "POST",
+      headers: { ...authHeaders() },
+    });
+    if (res.ok) {
+      setRooms((prev) => prev.filter((r) => r.id !== activeId));
+      setActiveId(null);
+      setShowGroupInfo(false);
+    }
+  }
+
+  // rename group
+  async function handleRenameGroup(newName: string) {
+    if (!activeId) return;
+    const res = await fetch(api(`/groups/${activeId}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ name: newName }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setRooms((prev) => prev.map((r) => (r.id === activeId ? { ...r, name: data.name } : r)));
+    }
+  }
+
+  // update description
+  async function handleUpdateDescription(desc: string) {
+    if (!activeId) return;
+    await fetch(api(`/groups/${activeId}`), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ description: desc }),
+    });
+    setRooms((prev) => prev.map((r) => (r.id === activeId ? { ...r, description: desc } : r)));
+  }
+
+  // upload photo
+  async function handleUploadPhoto(file: File) {
+    if (!activeId) return;
+    const formData = new FormData();
+    formData.append("photo", file);
+    const res = await fetch(api(`/groups/${activeId}/photo`), {
+      method: "POST",
+      headers: { ...authHeaders() },
+      body: formData,
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setRooms((prev) => prev.map((r) => (r.id === activeId ? { ...r, photoURL: data.photoURL } : r)));
+    }
+  }
+
+  async function handleCreate(name: string, code: string) {
     const res = await fetch(api("/chat/rooms"), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ name: newRoomName.trim(), code: newRoomCode.trim() }),
+      body: JSON.stringify({ name, code }),
     });
     const data = await res.json();
-    if (!res.ok) return alert(data?.error || "Failed to create room");
-    setRooms((r) => [data.room, ...r]);
-    setActiveId(data.room.id);
-    setShowCreateModal(false);
-    setNewRoomName(""); setNewRoomCode("");
+    if (res.ok) {
+      setRooms((r) => [data.room, ...r]);
+      setActiveId(data.room.id);
+      setShowCreateModal(false);
+    }
   }
-  async function handleJoinRoom(code: string) {
+
+  async function handleJoin(code: string) {
     const res = await fetch(api("/chat/join"), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ code: code.trim() }),
+      body: JSON.stringify({ code }),
     });
     const data = await res.json();
-    if (!res.ok) return alert(data?.error || "Failed to join room");
-    setRooms((prev) => (prev.some((r) => r.id === data.room.id) ? prev : [data.room, ...prev]));
-    setActiveId(data.room.id);
-    setShowJoinModal(false);
+    if (res.ok) {
+      setRooms((r) => [data.room, ...r]);
+      setActiveId(data.room.id);
+      setShowJoinModal(false);
+    }
   }
+
   async function send(text: string) {
     if (!activeId) return;
     const res = await fetch(api(`/chat/rooms/${activeId}/messages`), {
@@ -141,181 +137,111 @@ export default function Chat() {
       body: JSON.stringify({ text }),
     });
     const data = await res.json();
-    if (!res.ok) return alert(data?.error || "Failed to send");
-    // ensure the added message has currentUserId so it renders on the right
-    if (data.message) setRoomMessages(activeId, [{ ...data.message, userId: currentUserId! }]);
-  }
-
-  // header actions
-  const activeRoom = rooms.find((r) => r.id === activeId) || null;
-  const isAdmin = !!activeRoom?.isAdmin;
-
-  async function renameRoom() { /* …kept from earlier: PUT /api/chat/rooms/:id … */ }
-  async function deleteGroup() { /* …DELETE /api/chat/rooms/:id… */ }
-  async function inviteByPhone() { /* …POST /api/chat/rooms/:id/invite-phone… */ }
-  async function leaveGroup() { /* …POST /api/chat/rooms/:id/leave … */ }
-  async function updateDescription(desc: string) {
-    if (!activeId) return;
-    await fetch(api(`/chat/rooms/${activeId}`), {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ description: desc }),
-    });
-  }
-  async function uploadPhoto(file: File) {
-    if (!activeId) return;
-    const fd = new FormData();
-    fd.append("photo", file);
-    const res = await fetch(api(`/chat/rooms/${activeId}/photo`), {
-      method: "POST",
-      headers: { ...authHeaders() },
-      body: fd,
-    });
-    const data = await res.json();
     if (res.ok) {
-      setRooms((prev) => prev.map((r) => (r.id === activeId ? { ...r, photoURL: data.photoURL } : r)));
+      setMessages((prev) => {
+        const arr = prev[activeId] || [];
+        return { ...prev, [activeId]: [...arr, { ...data.message, userId: currentUserId! }] };
+      });
     }
   }
 
-  const actionsMenu = [
-    { label: "Group info", onClick: () => setShowGroupInfo(true) },
-    { label: "Details (Media / Docs / Links)", onClick: () => setShowShared(true) },
-    { label: "Rename group", onClick: () => { setNewName(activeRoom?.name || ""); setShowRenameModal(true); }, disabled: !isAdmin },
-    { label: "Add by phone", onClick: () => setShowInviteModal(true), disabled: !isAdmin },
-    { label: "Leave group", onClick: () => leaveGroup() },
-    { label: "Delete group", onClick: () => setShowDeleteConfirm(true), danger: true, disabled: !isAdmin },
-  ];
-
-  const activeMessages = activeId ? messages[activeId] || [] : [];
+  const activeRoom = rooms.find((r) => r.id === activeId) || null;
+  const msgs = activeId ? messages[activeId] || [] : [];
 
   return (
     <div className="h-[calc(100vh-64px)] grid grid-cols-12">
-      {/* Left column */}
-      <div className="col-span-3 border-r border-[var(--border)] bg-[var(--panel)] flex flex-col">
+      {/* Sidebar */}
+      <div className="col-span-3 border-r bg-[var(--panel)] flex flex-col">
         <div className="flex items-center justify-between p-3">
-          <div className="font-semibold">Rooms & Chats</div>
-          <button
-            className="rounded-full p-1 text-zinc-400 hover:text-white"
-            onClick={() => {
-              setRoomsLoading(true);
-              fetch(api("/chat/rooms"), { headers: { ...authHeaders() } })
-                .then((r) => r.json())
-                .then((d) => setRooms(Array.isArray(d) ? d : []))
-                .finally(() => setRoomsLoading(false));
-            }}
-            aria-label="Refresh"
-            title="Refresh"
-          >
-            ↻
+          <div className="font-semibold">Chats</div>
+          <button className="px-2 py-1 rounded bg-yellow-400 text-black" onClick={() => setShowCreateModal(true)}>
+            + New
           </button>
         </div>
-
-        <div className="px-3 pb-3 flex gap-2">
-          <button className="rounded-full bg-yellow-400 px-4 py-2 font-medium text-black" onClick={() => setShowCreateModal(true)}>+ Create Room</button>
-          <button className="rounded-full bg-zinc-700 px-4 py-2 font-medium text-white" onClick={() => setShowJoinModal(true)}>↳ Join Room</button>
-        </div>
-
-        {roomsErr && <div className="px-3 text-xs text-red-400">{roomsErr}</div>}
-        {roomsLoading && <div className="px-3 text-xs text-zinc-400">Loading rooms…</div>}
-
-        <div className="min-h-0 flex-1">
-          <RoomList rooms={rooms} activeId={activeId} onSelectRoom={setActiveId} />
-        </div>
+        <RoomList rooms={rooms} activeId={activeId} onSelectRoom={setActiveId} />
       </div>
 
-      {/* Middle column: header + messages */}
+      {/* Chat */}
       <div className="col-span-9 flex flex-col bg-[var(--bg)]">
-        <div className="px-4 py-2 border-b border-[var(--border)] flex items-center justify-between">
-          {activeRoom ? (
-            <div className="flex items-center gap-3">
-              <Avatar name={activeRoom.name} src={activeRoom.photoURL} />
-              <div className="leading-tight">
-                <div className="font-semibold truncate">{activeRoom.name}</div>
-                <div className="text-[11px] text-zinc-400">{activeRoom.membersCount} members</div>
+        {activeRoom ? (
+          <>
+            <div className="flex items-center justify-between p-3 border-b">
+              <div className="flex items-center gap-3">
+                <Avatar name={activeRoom.name} src={activeRoom.photoURL} />
+                <div>
+                  <div className="font-semibold">{activeRoom.name}</div>
+                  <div className="text-xs text-gray-400">{activeRoom.membersCount} members</div>
+                </div>
               </div>
+              <Dropdown
+                trigger={<button className="px-2 py-1 hover:bg-gray-700 rounded">⋮</button>}
+                items={[
+                  { label: "Group info", onClick: () => setShowGroupInfo(true) },
+                  { label: "Leave group", onClick: () => console.log("leave") },
+                ]}
+              />
             </div>
-          ) : (
-            <div className="font-semibold">Select a room</div>
-          )}
-
-          {!!activeRoom && (
-            <Dropdown
-              trigger={<button className="rounded-md px-2 py-1 text-zinc-300 hover:bg-zinc-800" title="More">⋮</button>}
-              items={actionsMenu}
-            />
-          )}
-        </div>
-
-        <MessageList items={activeMessages} currentUserId={currentUserId} />
-        <MessageInput onSend={send} disabled={!activeId} />
-        {msgErr && <div className="px-4 py-2 text-xs text-red-400">{msgErr}</div>}
+            <MessageList items={msgs} currentUserId={currentUserId} />
+            <MessageInput onSend={send} />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">Select a room</div>
+        )}
       </div>
 
-      {/* Drawers / Panels */}
-      {!!activeRoom && (
-        <>
-          <GroupInfoDrawer
-            isOpen={showGroupInfo}
-            onClose={() => setShowGroupInfo(false)}
-            room={{
-              id: activeRoom.id,
-              name: activeRoom.name,
-              createdAt: activeRoom.createdAt as any,
-              code: activeRoom.code,
-              isAdmin,
-              description: activeRoom.description,
-              photoURL: activeRoom.photoURL,
-            }}
-            members={[{ userId: currentUserId || "you", name: "You", role: isAdmin ? "admin" : "member" }]}
-            currentUserId={currentUserId}
-            onMakeAdmin={(uid) => alert(`Make admin -> ${uid}`)}
-            onRemoveFromGroup={(uid) => alert(`Remove -> ${uid}`)}
-            onLeaveGroup={leaveGroup}
-            onOpenDM={(uid) => alert(`Open DM with ${uid}`)}
-            onCopyCode={() => navigator.clipboard.writeText(activeRoom.code || "")}
-            onInviteByPhone={() => setShowInviteModal(true)}
-            onRename={() => { setNewName(activeRoom.name); setShowRenameModal(true); }}
-            onDeleteGroup={() => setShowDeleteConfirm(true)}
-            onUpdateDescription={updateDescription}
-            onUploadPhoto={uploadPhoto}
-            onOpenDetails={() => { setShowGroupInfo(false); setShowShared(true); }}
-          />
-          <SharedPanel open={showShared} onClose={() => setShowShared(false)} />
-        </>
+      {activeRoom && (
+        <GroupInfoDrawer
+          isOpen={showGroupInfo}
+          onClose={() => setShowGroupInfo(false)}
+          room={activeRoom}
+          members={[{ userId: currentUserId || "me", name: "You", role: "admin" }]}
+          currentUserId={currentUserId}
+          onMakeAdmin={() => { }}
+          onRemoveFromGroup={() => { }}
+          onLeaveGroup={handleLeaveGroup}
+          onOpenDM={() => { }}
+          onCopyCode={() => navigator.clipboard.writeText(activeRoom.code || "")}
+          onInviteByPhone={() => { }}
+          onRename={() => handleRenameGroup(prompt("Enter new name") || activeRoom.name)}
+          onDeleteGroup={() => { }}
+          onUpdateDescription={handleUpdateDescription}
+          onUploadPhoto={handleUploadPhoto}
+          onOpenDetails={() => { }}
+        />
+
       )}
 
-      {/* Create Room */}
-      <Modal open={showCreateModal} title="Create room" onClose={() => setShowCreateModal(false)}>
-        <div className="space-y-3">
-          <input className="w-full rounded-lg bg-zinc-800 px-3 py-2 outline-none" placeholder="Room name" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} />
-          <input className="w-full rounded-lg bg-zinc-800 px-3 py-2 outline-none" placeholder="Room code (5–6 digits)" value={newRoomCode} onChange={(e) => setNewRoomCode(e.target.value)} />
-          <div className="flex justify-end gap-2">
-            <button className="px-3 py-2 rounded-lg border border-zinc-700" onClick={() => setShowCreateModal(false)}>Cancel</button>
-            <button className="px-3 py-2 rounded-lg bg-yellow-400 text-black" onClick={handleCreateRoom}>Create</button>
-          </div>
-        </div>
+      {/* Create Modal */}
+      <Modal open={showCreateModal} title="Create Room" onClose={() => setShowCreateModal(false)}>
+        <CreateRoomForm onSubmit={handleCreate} />
       </Modal>
 
-      {/* Join Room */}
-      <Modal open={showJoinModal} title="Join room" onClose={() => setShowJoinModal(false)}>
-        <JoinForm onSubmit={(code) => handleJoinRoom(code)} />
+      {/* Join Modal */}
+      <Modal open={showJoinModal} title="Join Room" onClose={() => setShowJoinModal(false)}>
+        <JoinRoomForm onSubmit={handleJoin} />
       </Modal>
-
-      {/* Invite / Rename / Delete modals same as before… */}
-      {/* … keep from your previous step (Invite by phone / Rename / Delete confirm) */}
     </div>
   );
 }
 
-function JoinForm({ onSubmit }: { onSubmit: (code: string) => void }) {
+function CreateRoomForm({ onSubmit }: { onSubmit: (name: string, code: string) => void }) {
+  const [name, setName] = useState("");
   const [code, setCode] = useState("");
   return (
     <div className="space-y-3">
-      <input className="w-full rounded-lg bg-zinc-800 px-3 py-2 outline-none" placeholder="Room code" value={code} onChange={(e) => setCode(e.target.value)} />
-      <div className="flex justify-end gap-2">
-        <button className="px-3 py-2 rounded-lg border border-zinc-700" onClick={() => setCode("")}>Clear</button>
-        <button className="px-3 py-2 rounded-lg bg-emerald-600 text-black" onClick={() => onSubmit(code)}>Join</button>
-      </div>
+      <input className="w-full p-2 rounded bg-gray-800" placeholder="Room name" value={name} onChange={(e) => setName(e.target.value)} />
+      <input className="w-full p-2 rounded bg-gray-800" placeholder="Code" value={code} onChange={(e) => setCode(e.target.value)} />
+      <button className="px-3 py-2 bg-yellow-400 rounded" onClick={() => onSubmit(name, code)}>Create</button>
+    </div>
+  );
+}
+
+function JoinRoomForm({ onSubmit }: { onSubmit: (code: string) => void }) {
+  const [code, setCode] = useState("");
+  return (
+    <div className="space-y-3">
+      <input className="w-full p-2 rounded bg-gray-800" placeholder="Room code" value={code} onChange={(e) => setCode(e.target.value)} />
+      <button className="px-3 py-2 bg-emerald-600 rounded text-black" onClick={() => onSubmit(code)}>Join</button>
     </div>
   );
 }

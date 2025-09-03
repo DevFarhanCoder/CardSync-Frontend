@@ -197,20 +197,10 @@ export default function Landing() {
       {/* ---- Bottom Ad: full-width Barter Adverts banner ---- */}
       <BottomAd
         href="https://barteradverts.com"
-        // Use your own hosted banner (recommended):
-        // imageUrl="/assets/ads/barter-adverts-banner.jpg"
-        // Temporary placeholder (black background + gold text):
-        imageUrl="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNM420o1AXGgbfZi5zl5wedW2W97H6-hu77Q&s"
-        alt="Barter Adverts — Swap & Save"
-        ttlHours={24}
-        showDelayMs={400}
-        height={{ mobile: 88, desktop: 120 }}
+        imageUrl="/ads/tpl-banner.jpg"
+        heightPx={96}                    
+        showClose={false}                
       />
-
-      {/*
-      // Text banner version:
-      <BottomAd href="https://instantllycards.com/pricing" ttlHours={24} showDelayMs={400} />
-      */}
 
       {/* ---- Auth modal for guests (Start Free Trial) ---- */}
       {authOpen && (

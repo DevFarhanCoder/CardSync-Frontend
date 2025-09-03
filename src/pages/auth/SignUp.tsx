@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-/* -------- API base: use VITE_API_BASE_URL if set, else relative (for Vercel rewrite) -------- */
+/* -------- API base: use VITE_API_BASE_URL if set, else relative (for Vite proxy/Vercel) -------- */
 const RAW = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
 const BASE = (RAW ?? "").replace(/\/$/, "");
 const apiUrl = (path: string) => {
@@ -26,12 +26,12 @@ export default function SignUp() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
-
     setErr(null);
     setLoading(true);
 
     try {
-      const res = await fetch(apiUrl("/api/auth/signup"), {
+      // 🔁 endpoint fixed: register (not signup)
+      const res = await fetch(apiUrl("/api/auth/register"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -49,13 +49,13 @@ export default function SignUp() {
         return;
       }
 
-      // Save token & user (mirrors SignIn)
+      // Optionally auto-login if your API returns token on register; if not, redirect to /signin
       const token = (data as any)?.token as string | undefined;
       if (token) localStorage.setItem("token", token);
       if ((data as any)?.user) localStorage.setItem("user", JSON.stringify((data as any).user));
 
-      navigate("/dashboard/cards", { replace: true });
-    } catch (_e) {
+      navigate(token ? "/dashboard/cards" : "/signin", { replace: true });
+    } catch {
       setErr("Network error. Please try again.");
     } finally {
       setLoading(false);

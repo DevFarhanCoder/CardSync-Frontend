@@ -1,65 +1,66 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
-type User = { id: string; name: string; email: string } | null;
+type User = { id?: string; email?: string; name?: string } | null;
 
-type AuthCtx = {
-  user: User;
-  token: string | null;
+type AuthContextShape = {
+  loading: boolean;
   isAuthed: boolean;
-  setSession: (token: string, user: NonNullable<User>) => void;
-  clearSession: () => void;
+  token: string | null;
+  user: User;
+  signIn: (token: string, user?: User) => void;
+  signOut: () => void;
 };
 
-const Ctx = createContext<AuthCtx | null>(null);
+const AuthContext = createContext<AuthContextShape | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<User>(null);
+  const initedRef = useRef(false);
 
+  // Initialize ONCE from localStorage
   useEffect(() => {
+    if (initedRef.current) return;
+    initedRef.current = true;
+
     const t = localStorage.getItem("token");
     const u = localStorage.getItem("user");
-    if (t && u) {
-      setToken(t);
-      try { setUser(JSON.parse(u)); } catch { setUser(null); }
-    }
-    // sync across tabs
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "token" || e.key === "user") {
-        const nt = localStorage.getItem("token");
-        const nu = localStorage.getItem("user");
-        setToken(nt);
-        setUser(nu ? JSON.parse(nu) : null);
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    setToken(t);
+    setUser(u ? JSON.parse(u) : null);
+    setLoading(false);
   }, []);
 
-  const value = useMemo<AuthCtx>(() => ({
-    user,
-    token,
-    isAuthed: !!token && !!user,
-    setSession: (t, u) => {
-      localStorage.setItem("token", t);
-      localStorage.setItem("user", JSON.stringify(u));
-      setToken(t);
+  const signIn = (t: string, u?: User) => {
+    setToken(t);
+    localStorage.setItem("token", t);
+    if (u) {
       setUser(u);
-    },
-    clearSession: () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      setToken(null);
-      setUser(null);
+      localStorage.setItem("user", JSON.stringify(u));
     }
-  }), [user, token]);
+  };
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
+  const signOut = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  };
 
-export function useAuth() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  const value = useMemo<AuthContextShape>(() => ({
+    loading,
+    isAuthed: !!token,
+    token,
+    user,
+    signIn,
+    signOut,
+  }), [loading, token, user]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
-}
+};

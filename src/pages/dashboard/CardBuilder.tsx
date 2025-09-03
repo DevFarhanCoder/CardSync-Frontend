@@ -157,7 +157,10 @@ export default function CardBuilder() {
       } else {
         const res = await fetch(api("/cards"), {
           method: "POST",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token ? `Bearer ${token}` : "",   // 👈
+          },
           body: JSON.stringify({
             title: data.title || "Untitled",
             theme: data.theme || "luxe",
@@ -178,7 +181,7 @@ export default function CardBuilder() {
     } catch (e) {
       console.error(e);
       showToast("Saved locally (sync failed)");
-      nav("/dashboard/cards"); // ✅ still redirect even if sync fails
+      nav("/dashboard/cards");
     }
   };
   const onSaveAndExit = async () => {

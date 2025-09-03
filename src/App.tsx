@@ -1,37 +1,28 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
-import Landing from '@/pages/Landing'
-import Features from '@/pages/Features'
-import Pricing from '@/pages/Pricing'
-import Demo from '@/pages/Demo'
-import SignIn from '@/pages/auth/SignIn'
-import SignUp from '@/pages/auth/SignUp'
-import DashboardLayout from '@/layouts/DashboardLayout'
+import { Route, Routes, Navigate } from "react-router-dom";
+import Landing from "@/pages/Landing";
+import Features from "@/pages/Features";
+import Pricing from "@/pages/Pricing";
+import Demo from "@/pages/Demo";
+import SignIn from "@/pages/auth/SignIn";
+import SignUp from "@/pages/auth/SignUp";
+import DashboardLayout from "@/layouts/DashboardLayout";
 import Chat from "@/pages/dashboard/Chat";
-import Overview from '@/pages/dashboard/Overview'
-import NewCard from '@/pages/cards/NewCard'
-import MyCards from '@/pages/dashboard/MyCards'
-import CardBuilder from '@/pages/dashboard/CardBuilder'
-import Analytics from '@/pages/dashboard/Analytics'
-import Contacts from '@/pages/dashboard/Contacts'
-import Team from '@/pages/dashboard/Team'
-import Settings from '@/pages/dashboard/Settings'
-import Billing from '@/pages/dashboard/Billing'
-import Integrations from '@/pages/dashboard/Integrations'
-import Marketplace from '@/pages/dashboard/Marketplace'
-import Support from '@/pages/dashboard/Support'
-import { useAuth } from '@/context/AuthContext'
-import Explore from '@/pages/Explore'
-import PublicProfile from '@/pages/PublicProfile'
-import ShareCard from '@/pages/Share'
-
-function RequireAuth({ children }: { children: JSX.Element }) {
-  const { isAuthed } = useAuth()
-  return isAuthed ? children : <Navigate to="/signin" replace />
-}
-function RequireAnon({ children }: { children: JSX.Element }) {
-  const { isAuthed } = useAuth()
-  return isAuthed ? <Navigate to="/" replace /> : children
-}
+import Overview from "@/pages/dashboard/Overview";
+import NewCard from "@/pages/cards/NewCard";
+import MyCards from "@/pages/dashboard/MyCards";
+import CardBuilder from "@/pages/dashboard/CardBuilder";
+import Analytics from "@/pages/dashboard/Analytics";
+import Contacts from "@/pages/dashboard/Contacts";
+import Team from "@/pages/dashboard/Team";
+import Settings from "@/pages/dashboard/Settings";
+import Billing from "@/pages/dashboard/Billing";
+import Integrations from "@/pages/dashboard/Integrations";
+import Marketplace from "@/pages/dashboard/Marketplace";
+import Support from "@/pages/dashboard/Support";
+import Explore from "@/pages/Explore";
+import PublicProfile from "@/pages/PublicProfile";
+import ShareCard from "@/pages/Share";
+import { RequireAnon, RequireAuth } from "./routes/guards";
 
 export default function App() {
   return (
@@ -71,5 +62,5 @@ export default function App() {
       {/* catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }

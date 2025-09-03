@@ -56,31 +56,31 @@ export default function BottomAd({
   /** iOS safe-area padding for home indicator */
   const safePad = "env(safe-area-inset-bottom)";
 
-  return (
-    <div
-      className="fixed inset-x-0 bottom-0 z-[60]"
-      aria-label="Sponsored banner"
+return (
+  <div
+    className="fixed inset-x-0 bottom-0 z-[60]"
+    aria-label="Sponsored banner"
+  >
+    {/* Full-bleed: remove max-w / mx-auto */}
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block w-full"
+      style={{
+        height: heightPx,
+        lineHeight: 0,
+      }}
     >
-      {/* Full-bleed: remove max-w / mx-auto */}
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block w-full"
-        style={{
-          height: heightPx,
-          lineHeight: 0,
-        }}
-      >
-        <img
-          src={imageUrl}
-          alt={alt}
-          className="h-full w-full object-contain"   // keep aspect ratio, no cropping
-          decoding="async"
-          loading="lazy"
-        />
-      </a>
-    </div>
-  );
+      <img
+        src={imageUrl}
+        alt={alt}
+        className="h-full w-full object-contain"   // keep aspect ratio, no cropping
+        decoding="async"
+        loading="lazy"
+      />
+    </a>
+  </div>
+);
 
 }

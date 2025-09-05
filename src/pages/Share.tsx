@@ -1,117 +1,129 @@
 // src/pages/Share.tsx
-import { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import CardPreview from "@/components/CardPreview";
+// Reuse your centralized API helper (already used elsewhere in the app)
+import { getJson } from "@/lib/api";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+type Card = Record<string, any>;
 
 export default function Share() {
   const { id } = useParams<{ id: string }>();
   const [sp] = useSearchParams();
+
+  // Optional share token (e.g., magic link or temporary access)
   const token = sp.get("token") || "";
-  const [card, setCard] = useState<any>(null);
-  const [err, setErr] = useState<string | null>(null);
+
+  const [card, setCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(true);
-  const localToken = localStorage.getItem("token") || "";
-  const [needsLogin, setNeedsLogin] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // If your app requires auth for viewing cards, we can hint the user to sign in
+  const hasLocalToken = useMemo(() => !!localStorage.getItem("token"), []);
 
   useEffect(() => {
-    if (!localToken) {
-      setNeedsLogin(true);
-      setLoading(false);
-      return;
-    }
-  }, [] as any);
+    let isMounted = true;
 
-
-  useEffect(() => {
-    let alive = true;
-    const run = async () => {
-      setLoading(true);
+    async function run() {
       try {
-        const res = await fetch(`${API_BASE}/api/cards/${id}${token ? `?token=${token}` : ""}`);
-        const json = await res.json();
-        if (!alive) return;
-        if (res.ok) setCard(json.card);
-        else setErr(json?.message || "Unable to load card");
+        setLoading(true);
+        setErr(null);
+
+        if (!id) {
+          throw new Error("Invalid or missing card id.");
+        }
+
+        // Use your shared API helper so base URL is always correct
+        // (In prod, Vercel will proxy /api → Render; in dev, Vite proxy handles it.)
+        const data = await getJson(`/api/cards/${encodeURIComponent(id)}${token ? `?token=${encodeURIComponent(token)}` : ""}`);
+        if (!isMounted) return;
+
+        // Adjust to your API’s actual shape; assuming { card: {...} }
+        setCard(data?.card ?? null);
+        if (!data?.card) {
+          setErr("Card not found or you don't have permission to view it.");
+        }
       } catch (e: any) {
-        if (alive) setErr(e.message || "Network error");
+        if (!isMounted) return;
+        setErr(e?.message || "Failed to load the shared card.");
       } finally {
-        if (alive) setLoading(false);
+        if (isMounted) setLoading(false);
       }
-    };
+    }
+
     run();
-  
-  if (needsLogin) {
-    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    return () => {
+      isMounted = false;
+    };
+  }, [id, token]);
+
+  if (loading) {
     return (
-      <div className="max-w-xl mx-auto p-6">
-        <div className="rounded-xl border border-[var(--border)] p-6 bg-[var(--card)]">
-          <h2 className="text-lg font-semibold mb-2">Sign in required</h2>
-          <p className="text-[var(--subtle)] mb-4">You need an account to view this shared card.</p>
-          <a href={`/signin?next=${next}`} className="inline-block rounded-lg bg-yellow-400 text-black px-4 py-2 font-medium">Sign in</a>
+      <div className="max-w-3xl mx-auto px-4 py-10">
+        <p className="text-sm text-gray-500">Loading…</p>
+      </div>
+    );
+  }
+
+  if (err) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-4">
+        <h1 className="text-2xl font-semibold">Share</h1>
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          {err}
+        </div>
+
+        {!hasLocalToken && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-amber-800">
+              If this link requires an account, please{" "}
+              <Link to="/signin" className="underline">
+                sign in
+              </Link>{" "}
+              and try again.
+            </p>
+          </div>
+        )}
+
+        <div>
+          <Link to="/" className="inline-flex items-center rounded-lg border px-4 py-2 hover:bg-gray-50">
+            ← Back to Home
+          </Link>
         </div>
       </div>
     );
   }
 
-  return () => { alive = false; };
-  }, [id, token]);
-
-
-  // record a public "view" when someone opens the shared card page
-  useEffect(() => {
-    if (!card?._id) return;
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/api/analytics/card/${card._id}/increment`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event: "view" }),
-    }).catch(() => { });
-  }, [card?._id]);
-
-
-  if (loading) return <div className="max-w-3xl mx-auto p-6 text-[var(--subtle)]">Loading…</div>;
-  if (err) return (
-    <div className="max-w-3xl mx-auto p-6">
-      <div className="card p-6">
-        <div className="text-red-400 font-medium mb-2">Error</div>
-        <div className="text-[var(--subtle)]">{err}</div>
-        <div className="mt-4">
-          <Link to="/signin" className="btn btn-gold">Sign in</Link>
-        </div>
-      </div>
-    </div>
-  );
-
-  const data = card ? {
-    title: card.title, type: card.type, theme: card.theme,
-    name: card.name, email: card.email, phone: card.phone, address: card.address,
-    logoUrl: card.logoUrl, website: card.website, tagline: card.tagline, role: card.role,
-    eventDate: card.eventDate, eventVenue: card.eventVenue, socials: card.socials || {},
-  } : null;
-
-
-  if (needsLogin) {
-    const next = encodeURIComponent(window.location.pathname + window.location.search);
+  if (!card) {
     return (
-      <div className="max-w-xl mx-auto p-6">
-        <div className="rounded-xl border border-[var(--border)] p-6 bg-[var(--card)]">
-          <h2 className="text-lg font-semibold mb-2">Sign in required</h2>
-          <p className="text-[var(--subtle)] mb-4">You need an account to view this shared card.</p>
-          <a href={`/signin?next=${next}`} className="inline-block rounded-lg bg-yellow-400 text-black px-4 py-2 font-medium">Sign in</a>
-        </div>
+      <div className="max-w-3xl mx-auto px-4 py-10 space-y-4">
+        <h1 className="text-2xl font-semibold">Share</h1>
+        <p className="text-gray-600">No card to display.</p>
+        <Link to="/" className="inline-flex items-center rounded-lg border px-4 py-2 hover:bg-gray-50">
+          ← Back to Home
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="card p-6">
-        <h2 className="text-xl font-semibold mb-4">{card?.title || "Card"}</h2>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] grid place-items-center h-[440px] overflow-hidden">
-          {data && <CardPreview data={data} showPlaceholders={false} />}
-        </div>
+    <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Shared Card</h1>
+        <Link to="/" className="inline-flex items-center rounded-lg border px-4 py-2 hover:bg-gray-50">
+          ← Back to Home
+        </Link>
       </div>
+
+      {/* Render your existing preview component */}
+      <CardPreview card={card} />
+
+      {/* Optional: show minimal meta */}
+      {card?.title && (
+        <div className="text-sm text-gray-500">
+          <span className="font-medium">Title:</span> {card.title}
+        </div>
+      )}
     </div>
   );
 }

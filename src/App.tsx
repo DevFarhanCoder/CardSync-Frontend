@@ -12,6 +12,7 @@ import NewCard from "@/pages/cards/NewCard";
 import MyCards from "@/pages/dashboard/MyCards";
 import CardBuilder from "@/pages/dashboard/CardBuilder";
 import Analytics from "@/pages/dashboard/Analytics";
+import ShareRecords from "@/pages/dashboard/ShareRecords";
 import Contacts from "@/pages/dashboard/Contacts";
 import Team from "@/pages/dashboard/Team";
 import Settings from "@/pages/dashboard/Settings";
@@ -34,7 +35,7 @@ export default function App() {
 
       {/* public */}
       <Route path="/explore" element={<Explore />} />
-      <Route path="/u/:ownerId" element={<PublicProfile />} />
+      <Route path="/public/profile/:owner/cards" element={<PublicProfile />} />
 
       {/* share (auth) */}
       <Route path="/share/:id" element={<RequireAuth><ShareCard /></RequireAuth>} />
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="cards" element={<MyCards />} />
         <Route path="builder" element={<CardBuilder />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="shares" element={<ShareRecords />} />
         <Route path="contacts" element={<Contacts />} />
         <Route path="team" element={<Team />} />
         <Route path="integrations" element={<Integrations />} />

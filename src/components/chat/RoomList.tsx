@@ -1,52 +1,34 @@
 import Avatar from "@/components/ui/Avatar";
-
-export type Room = {
-  id: string;
-  name: string;
-  membersCount: number;
-  isAdmin: boolean;
-  code?: string;
-  createdAt?: string | number | Date;
-  lastMessage?: string;
-  lastAt?: number;
-  photoURL?: string;           // NEW
-  description?: string;        // NEW
-};
+type Room = { id: string; name: string; code: string; isAdmin?: boolean; members?: string[] };
 
 export default function RoomList({
-  rooms,
-  activeId,
-  onSelectRoom,
+  rooms, activeId, onSelect, onSelectRoom,
 }: {
-  rooms: Room[];
-  activeId: string | null;
-  onSelectRoom: (roomId: string) => void;
+  rooms: Room[]; activeId?: string;
+  onSelect?: (r: Room) => void;
+  onSelectRoom?: (r: Room) => void;
 }) {
+  const select = onSelectRoom || onSelect || (() => {});
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="px-3 pt-2 pb-1 text-xs uppercase text-zinc-400">Groups</div>
-      {rooms.map((r) => (
-        <button
-          key={r.id}
-          className={`w-full flex items-center gap-3 px-3 py-2 cursor-pointer rounded-lg ${
-            activeId === r.id ? "bg-zinc-800" : "hover:bg-zinc-800/70"
-          }`}
-          onClick={() => onSelectRoom(r.id)}
-        >
-          <Avatar name={r.name} src={r.photoURL} />
-          <div className="min-w-0 flex-1 text-left">
-            <div className="flex items-center justify-between">
-              <div className="font-medium text-zinc-100 truncate">{r.name}</div>
-              <div className="text-[10px] text-zinc-500 ml-2">
-                {r.membersCount ?? 1}
-              </div>
+    <div className="space-y-2">
+      {rooms.map((r) => {
+        const active = activeId === r.id;
+        return (
+          <button
+            key={r.id}
+            onClick={() => select(r)}
+            className={`w-full rounded-xl px-3 py-2 flex items-center gap-3 border border-[var(--border)]
+                        ${active ? "bg-white/10" : "bg-[#12161b] hover:bg-[#1a1f26]"}`}
+          >
+            <Avatar name={r.name} />
+            <div className="flex-1 text-left">
+              <div className="font-medium leading-5">{r.name}</div>
+              <div className="text-[10px] text-[var(--subtle)]">No messages yet</div>
             </div>
-            <div className="text-xs text-zinc-400 truncate">
-              {r.lastMessage || "No messages yet"}
-            </div>
-          </div>
-        </button>
-      ))}
+            <span className="text-[10px] opacity-60">{(r.members || []).length || 1}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

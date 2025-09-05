@@ -211,3 +211,21 @@ html { overflow-y: scroll; }
 .card-shadow {
   box-shadow: 0 8px 24px rgba(0,0,0,.28);
 }
+
+:root {
+  --gold: #f0c63c;
+}
+
+.btn-gold {
+  background: var(--gold);
+  color: #111;
+}
+.btn-gold:hover { filter: brightness(0.95); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: transparent; color: #fff;
+}
+.chip:hover { background: rgba(255,255,255,0.06); }

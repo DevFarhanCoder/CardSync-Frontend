@@ -12,6 +12,17 @@ export default function Share() {
   const [card, setCard] = useState<any>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const localToken = localStorage.getItem("token") || "";
+  const [needsLogin, setNeedsLogin] = useState(false);
+
+  useEffect(() => {
+    if (!localToken) {
+      setNeedsLogin(true);
+      setLoading(false);
+      return;
+    }
+  }, [] as any);
+
 
   useEffect(() => {
     let alive = true;
@@ -30,7 +41,21 @@ export default function Share() {
       }
     };
     run();
-    return () => { alive = false; };
+  
+  if (needsLogin) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    return (
+      <div className="max-w-xl mx-auto p-6">
+        <div className="rounded-xl border border-[var(--border)] p-6 bg-[var(--card)]">
+          <h2 className="text-lg font-semibold mb-2">Sign in required</h2>
+          <p className="text-[var(--subtle)] mb-4">You need an account to view this shared card.</p>
+          <a href={`/signin?next=${next}`} className="inline-block rounded-lg bg-yellow-400 text-black px-4 py-2 font-medium">Sign in</a>
+        </div>
+      </div>
+    );
+  }
+
+  return () => { alive = false; };
   }, [id, token]);
 
 
@@ -64,6 +89,20 @@ export default function Share() {
     logoUrl: card.logoUrl, website: card.website, tagline: card.tagline, role: card.role,
     eventDate: card.eventDate, eventVenue: card.eventVenue, socials: card.socials || {},
   } : null;
+
+
+  if (needsLogin) {
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    return (
+      <div className="max-w-xl mx-auto p-6">
+        <div className="rounded-xl border border-[var(--border)] p-6 bg-[var(--card)]">
+          <h2 className="text-lg font-semibold mb-2">Sign in required</h2>
+          <p className="text-[var(--subtle)] mb-4">You need an account to view this shared card.</p>
+          <a href={`/signin?next=${next}`} className="inline-block rounded-lg bg-yellow-400 text-black px-4 py-2 font-medium">Sign in</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">

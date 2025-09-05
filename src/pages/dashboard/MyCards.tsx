@@ -1,19 +1,27 @@
+// src/pages/dashboard/MyCards.tsx
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, X } from "lucide-react";
 import CardPreview from "@/components/CardPreview";
-import ShareButton from "@/components/ShareButton";
+import ShareDialog from "@/components/share/ShareDialog";
 import { api } from "@/lib/api";
 
 type Saved = { id: string; dbId?: string | null; createdAt: string; data: any };
 
 export default function MyCards() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [saved, setSaved] = useState<Saved[]>([]);
   const [active, setActive] = useState<Saved | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  const token = localStorage.getItem("token");
+  // Share dialog state
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareCard, setShareCard] = useState<Saved | null>(null);
+
+  const token = localStorage.getItem("token") || "";
 
   useEffect(() => {
     const raw = localStorage.getItem("cards");
@@ -40,8 +48,8 @@ export default function MyCards() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          throw new Error(j?.error || j?.message || "Failed to delete on server");
+          const j = await res.json().catch(() => ({} as any));
+          throw new Error((j as any)?.error || (j as any)?.message || "Failed to delete on server");
         }
       }
       setSaved((prev) => {
@@ -51,7 +59,7 @@ export default function MyCards() {
       });
       showToast("Card deleted");
     } catch (e: any) {
-      showToast(e.message || "Delete failed");
+      showToast(e?.message || "Delete failed");
     }
   };
 
@@ -59,7 +67,9 @@ export default function MyCards() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-semibold">My Cards</h2>
-        <Link to="/dashboard/builder" className="btn btn-gold">Create New</Link>
+        <Link to="/dashboard/builder" className="btn btn-gold">
+          Create New
+        </Link>
       </div>
 
       {!hasCards ? (
@@ -76,15 +86,17 @@ export default function MyCards() {
                 <Eye size={16} />
               </button>
 
-              {/* Preview Card */}
+              {/* Preview */}
               <div className="rounded-xl border border-[var(--border)] bg-[var(--muted)] grid place-items-center overflow-hidden">
                 <CardPreview id={`card-${c.id}`} data={c.data} />
               </div>
 
-              {/* Card Metadata */}
+              {/* Meta */}
               <div className="mt-3 flex items-center justify-between">
                 <div>
-                  <h4 className="font-semibold truncate">{c.data?.title || c.data?.type || "Card"}</h4>
+                  <h4 className="font-semibold truncate">
+                    {c.data?.title || c.data?.type || "Card"}
+                  </h4>
                   <p className="text-xs text-[var(--subtle)]">
                     {new Date(c.createdAt).toLocaleString()}
                   </p>
@@ -92,10 +104,21 @@ export default function MyCards() {
                 <span className="chip">{c.dbId ? "Synced" : "Local"}</span>
               </div>
 
-              {/* Actions (only this row kept) */}
+              {/* Actions */}
               <div className="mt-3 grid grid-cols-3 gap-2">
-                <ShareButton targetId={`card-${c.id}`} data={c.data} />
-                <button className="btn btn-gold" onClick={() => handleEdit(c)}>Edit</button>
+                <button
+                  className="rounded-xl bg-[#1f7a35] px-5 py-2 text-white font-medium"
+                  onClick={() => {
+                    setShareCard(c);
+                    setShareOpen(true);
+                  }}
+                >
+                  Share
+                </button>
+
+                <button className="btn btn-gold" onClick={() => handleEdit(c)}>
+                  Edit
+                </button>
                 <button
                   className="btn bg-red-600 hover:bg-red-700 text-white"
                   onClick={() => handleDelete(c)}
@@ -126,8 +149,18 @@ export default function MyCards() {
                   <div className="text-sm text-[var(--subtle)]">
                     {new Date(active.createdAt).toLocaleString()}
                   </div>
-                  <ShareButton targetId="preview-active" data={active.data} />
-                  <button className="btn w-full" onClick={() => handleEdit(active)}>Edit</button>
+                  <button
+                    className="btn w-full"
+                    onClick={() => {
+                      setShareCard(active);
+                      setShareOpen(true);
+                    }}
+                  >
+                    Share
+                  </button>
+                  <button className="btn w-full" onClick={() => handleEdit(active)}>
+                    Edit
+                  </button>
                   <button
                     className="btn bg-red-600 hover:bg-red-700 text-white w-full"
                     onClick={() => handleDelete(active)}
@@ -141,12 +174,26 @@ export default function MyCards() {
         </div>
       )}
 
+      {/* Toast */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-[70]">
           <div className="bg-black/90 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg">
             {toast}
           </div>
         </div>
+      )}
+
+      {/* Share dialog must be inside the component's return and outside any object literal */}
+      {shareCard && (
+        <ShareDialog
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          card={{
+            _id: (shareCard.dbId || shareCard.id) as string,
+            title: shareCard.data?.title || shareCard.id,
+          }}
+          ownerHandle={(user?.id || "") as string}
+        />
       )}
     </div>
   );

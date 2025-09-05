@@ -1,7 +1,10 @@
+// src/pages/CardBuilder.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { nanoid } from "nanoid";
 import CardPreview from "@/components/CardPreview";
+import { api, getToken, postJson, putJson } from "@/lib/api";
+
 import {
   CardData,
   CardType,
@@ -10,7 +13,6 @@ import {
   normalizeType,
   validateCard,
 } from "@/lib/cardTypes";
-import { api } from "@/lib/api";
 import "@/styles/ic-form.css";
 
 type Saved = { id: string; dbId?: string | null; createdAt: string; data: CardData };
@@ -49,7 +51,6 @@ export default function CardBuilder() {
   );
 
   const [toast, setToast] = useState<string | null>(null);
-  const token = localStorage.getItem("token");
 
   const type = normalizeType(data.type);
   const theme = (data.theme || "luxe") as string;
@@ -116,7 +117,6 @@ export default function CardBuilder() {
   };
 
   /** Save locally; if token exists also sync to backend */
-  /** Save locally; if token exists also sync to backend */
   const onSave = async () => {
     const { ok, missing } = validateCard(data, type);
     if (!ok) {
@@ -125,65 +125,41 @@ export default function CardBuilder() {
     }
 
     const localRecord = upsertLocal();
+    const token = getToken();
 
     if (!token) {
-      showToast("Saved locally");
-      nav("/dashboard/cards"); // ✅ redirect after local save
+      showToast("Saved locally. Sign in to sync.");
+      // stay on the page so fields are NOT cleared
       return;
     }
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+      let dbId = localRecord.dbId || null;
+      const payload = {
+        title: data.title || "Untitled",
+        theme: data.theme || "luxe",
+        data,
+        isPublic: false,
       };
 
-      let dbId = localRecord.dbId || null;
-
       if (dbId) {
-        const res = await fetch(api(`/cards/${dbId}`), {
-          method: "PUT",
-          headers,
-          body: JSON.stringify({
-            title: data.title || "Untitled",
-            theme: data.theme || "luxe",
-            data,
-            isPublic: false,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to sync (update)");
-        const j = await res.json();
+        const j = await putJson(`/api/cards/${dbId}`, payload);
         dbId = j?.card?._id || dbId;
       } else {
-        const res = await fetch(api("/cards"), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",   // 👈
-          },
-          body: JSON.stringify({
-            title: data.title || "Untitled",
-            theme: data.theme || "luxe",
-            data,
-            isPublic: false,
-          }),
-        });
-        if (!res.ok) throw new Error("Failed to sync (create)");
-        const j = await res.json();
+        const j = await postJson(`/api/cards`, payload);
         dbId = j?.card?._id || null;
       }
 
       upsertLocal({ dbId });
-      showToast("Synced");
-
-      // ✅ redirect after sync
+      showToast("Synced with server");
       nav("/dashboard/cards");
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error(err);
       showToast("Saved locally (sync failed)");
-      nav("/dashboard/cards");
+      // remain on page so user data persists
     }
   };
+
   const onSaveAndExit = async () => {
     await onSave();
     nav("/dashboard/cards");
@@ -197,11 +173,7 @@ export default function CardBuilder() {
     <div className="grid lg:grid-cols-[420px,1fr] gap-6">
       {/* Preview */}
       <div className="card p-4">
-        <CardPreview
-          id="builder-card"
-          data={view}
-          theme={theme}
-        />
+        <CardPreview id="builder-card" data={view} theme={theme} />
       </div>
 
       {/* Form — styled by ic-form.css */}

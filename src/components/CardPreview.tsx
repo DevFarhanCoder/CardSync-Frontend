@@ -166,7 +166,9 @@ function toShareCard(data: CardData): ShareCard {
     email: data.email,
     website: data.website,
     location: data.address,
-    mapsQuery: data.addressMap, // if provided, overrides
+    mapsQuery: data.addressMap,
+    gender: data.extra?.personal as any ? (data.extra?.personal as any).gender : undefined, // optional
+
     // Business
     companyName: data.extra?.company?.companyName,
     businessCategory: data.extra?.company?.category,
@@ -174,6 +176,7 @@ function toShareCard(data: CardData): ShareCard {
     companyEmail: data.extra?.company?.email,
     companyAddress: data.extra?.company?.address,
     companyWebsite: data.extra?.company?.website,
+
     // Social
     social: {
       linkedin: data.socials?.linkedin,
@@ -185,6 +188,7 @@ function toShareCard(data: CardData): ShareCard {
     },
   };
 }
+
 
 /* ---------------- component ---------------- */
 
@@ -262,8 +266,7 @@ export default function CardPreview({
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareMessage);
-      // replace with your toast/snackbar if available
-      alert("Copied to clipboard");
+      alert("Text copied");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = shareMessage;
@@ -274,9 +277,10 @@ export default function CardPreview({
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      alert("Copied to clipboard");
+      alert("Text copied");
     }
   };
+
 
   /** If you want to target a specific number, pass it (E.164) */
   const openWhatsApp = (phoneE164?: string) => {

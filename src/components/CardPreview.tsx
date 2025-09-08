@@ -263,10 +263,12 @@ export default function CardPreview({
     [data]
   );
 
+  // inside CardPreview component, above handlers
+  const [copied, setCopied] = React.useState(false);
+
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareMessage);
-      alert("Text copied");
     } catch {
       const ta = document.createElement("textarea");
       ta.value = shareMessage;
@@ -277,9 +279,12 @@ export default function CardPreview({
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      alert("Text copied");
+    } finally {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500); // auto-hide
     }
   };
+
 
 
   /** If you want to target a specific number, pass it (E.164) */
@@ -407,6 +412,16 @@ export default function CardPreview({
           </button>
         </div>
       </div>
+      {copied && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-[9999] rounded-md bg-gray-900 text-white px-3 py-2 shadow-lg border border-gray-700"
+        >
+          Text copied
+        </div>
+      )}
+
     </div>
   );
 }

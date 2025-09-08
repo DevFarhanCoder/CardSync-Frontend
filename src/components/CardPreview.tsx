@@ -286,7 +286,6 @@ export default function CardPreview({
   };
 
 
-
   /** If you want to target a specific number, pass it (E.164) */
   const openWhatsApp = (phoneE164?: string) => {
     const base = phoneE164

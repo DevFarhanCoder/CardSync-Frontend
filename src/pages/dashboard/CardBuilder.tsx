@@ -589,15 +589,6 @@ export default function CardBuilder() {
               />
             </div>
             <div>
-              <label className="ic-label">GitHub</label>
-              <input
-                className="input ic-input"
-                value={data.socials?.github || ""}
-                onChange={(e) => updateSocial("github", e.target.value)}
-              />
-            </div>
-
-            <div>
               <label className="ic-label">WhatsApp (number or URL)</label>
               <input
                 className="input ic-input"

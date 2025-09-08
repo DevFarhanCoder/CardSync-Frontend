@@ -1,37 +1,17 @@
 import Logo from './Logo'
 
+// src/components/Footer.tsx
 export default function Footer() {
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--surface)] mt-24">
-      <div className="container py-12 grid gap-10 md:grid-cols-4">
-        <div>
-          <Logo />
-          <p className="text-sm text-[var(--subtle)] mt-4 max-w-sm">
-            Professional digital business cards with enterprise-grade analytics, integrations, and contact syncing.
-          </p>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-3">Product</h4>
-          <ul className="space-y-2 text-[var(--subtle)]">
-            <li>Features</li><li>Templates</li><li>Mobile App</li><li>Security</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-3">Company</h4>
-          <ul className="space-y-2 text-[var(--subtle)]">
-            <li>About</li><li>Careers</li><li>Contact</li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold mb-3">Resources</h4>
-          <ul className="space-y-2 text-[var(--subtle)]">
-            <li>Docs</li><li>Blog</li><li>Status</li><li>Privacy</li>
-          </ul>
-        </div>
-      </div>
-      <div className="border-t border-[var(--border)] py-6 text-center text-sm text-[var(--subtle)]">
-        © 2025 Instantlly-Cards. All rights reserved.
+    <footer className="border-t mt-12">
+      <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-gray-600 flex flex-wrap gap-4">
+        <a href="/privacy-policy" className="hover:underline">Privacy Policy</a>
+        <span>•</span>
+        <a href="/terms" className="hover:underline">Terms</a>
+        <span>•</span>
+        <a href="/delete-account" className="hover:underline">Delete Account</a>
+        <span className="ml-auto">© {new Date().getFullYear()} Instantly Cards</span>
       </div>
     </footer>
-  )
+  );
 }

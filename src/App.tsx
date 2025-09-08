@@ -24,6 +24,7 @@ import Explore from "@/pages/Explore";
 import PublicProfile from "@/pages/PublicProfile";
 import ShareCard from "@/pages/Share";
 import { RequireAnon, RequireAuth } from "./routes/guards";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DeleteAccount from "./pages/DeleteAccount";
 
 export default function App() {
@@ -64,6 +65,7 @@ export default function App() {
 
       {/* catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/delete-account" element={<DeleteAccount />} />
     </Routes>
   );

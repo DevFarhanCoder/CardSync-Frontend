@@ -91,6 +91,23 @@
                     }
                 },
                 {
+                    "source": "C:\\Users\\user3\\Documents\\Instantlly\\CardSync-Frontend\\app\\src\\main\\res\\values\\colors.xml",
+                    "from": {
+                        "startLines": "16",
+                        "startColumns": "4",
+                        "startOffsets": "647",
+                        "endColumns": "53",
+                        "endOffsets": "696"
+                    },
+                    "to": {
+                        "startLines": "82",
+                        "startColumns": "4",
+                        "startOffsets": "5375",
+                        "endColumns": "53",
+                        "endOffsets": "5424"
+                    }
+                },
+                {
                     "source": "C:\\Users\\user3\\.gradle\\caches\\8.11.1\\transforms\\22a8ec787f47654381fd448fc0dedaa1\\transformed\\lifecycle-viewmodel-2.6.2\\res\\values\\values.xml",
                     "from": {
                         "startLines": "2",
@@ -105,23 +122,6 @@
                         "startOffsets": "17917",
                         "endColumns": "49",
                         "endOffsets": "17962"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\user3\\Documents\\Application\\CardSync-Frontend\\app\\build\\generated\\res\\resValues\\release\\values\\gradleResValues.xml",
-                    "from": {
-                        "startLines": "6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "159,249,341,430,523,615,711,810,913,1017,1133,1248,1367,1491,1625,1736,1848,1998",
-                        "endColumns": "47,49,46,50,49,53,56,60,61,73,72,76,81,91,68,69,107,109",
-                        "endOffsets": "202,294,383,476,568,664,763,866,970,1086,1201,1320,1444,1578,1689,1801,1951,2103"
-                    },
-                    "to": {
-                        "startLines": "9,19,38,39,62,63,64,65,285,315,335,339,340,341,342,346,347,351",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "472,1181,2571,2618,4022,4072,4126,4183,18274,20355,21333,21621,21698,21780,21872,22214,22284,22608",
-                        "endColumns": "47,49,46,50,49,53,56,60,61,73,72,76,81,91,68,69,107,109",
-                        "endOffsets": "515,1226,2613,2664,4067,4121,4178,4239,18331,20424,21401,21693,21775,21867,21936,22279,22387,22713"
                     }
                 },
                 {
@@ -144,20 +144,39 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\user3\\Documents\\Application\\CardSync-Frontend\\app\\src\\main\\res\\values\\colors.xml",
+                    "source": "C:\\Users\\user3\\Documents\\Instantlly\\CardSync-Frontend\\app\\src\\main\\res\\values\\strings.xml",
                     "from": {
-                        "startLines": "16",
-                        "startColumns": "4",
-                        "startOffsets": "647",
-                        "endColumns": "53",
-                        "endOffsets": "696"
+                        "startLines": "25",
+                        "startColumns": "2",
+                        "startOffsets": "986",
+                        "endLines": "34",
+                        "endColumns": "11",
+                        "endOffsets": "1246"
                     },
                     "to": {
-                        "startLines": "82",
+                        "startLines": "317",
                         "startColumns": "4",
-                        "startOffsets": "5375",
-                        "endColumns": "53",
-                        "endOffsets": "5424"
+                        "startOffsets": "20489",
+                        "endLines": "326",
+                        "endColumns": "11",
+                        "endOffsets": "20749"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\user3\\Documents\\Instantlly\\CardSync-Frontend\\app\\build\\generated\\res\\resValues\\release\\values\\gradleResValues.xml",
+                    "from": {
+                        "startLines": "6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "159,249,341,430,523,615,711,810,913,1017,1133,1248,1367,1491,1625,1736,1848,1998",
+                        "endColumns": "47,49,46,50,49,53,56,60,61,73,72,76,81,91,68,69,107,109",
+                        "endOffsets": "202,294,383,476,568,664,763,866,970,1086,1201,1320,1444,1578,1689,1801,1951,2103"
+                    },
+                    "to": {
+                        "startLines": "9,19,38,39,62,63,64,65,285,315,335,339,340,341,342,346,347,351",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "472,1181,2571,2618,4022,4072,4126,4183,18274,20355,21333,21621,21698,21780,21872,22214,22284,22608",
+                        "endColumns": "47,49,46,50,49,53,56,60,61,73,72,76,81,91,68,69,107,109",
+                        "endOffsets": "515,1226,2613,2664,4067,4121,4178,4239,18331,20424,21401,21693,21775,21867,21936,22279,22387,22713"
                     }
                 },
                 {
@@ -175,25 +194,6 @@
                         "startOffsets": "17863",
                         "endColumns": "53",
                         "endOffsets": "17912"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\user3\\Documents\\Application\\CardSync-Frontend\\app\\src\\main\\res\\values\\strings.xml",
-                    "from": {
-                        "startLines": "25",
-                        "startColumns": "2",
-                        "startOffsets": "986",
-                        "endLines": "34",
-                        "endColumns": "11",
-                        "endOffsets": "1246"
-                    },
-                    "to": {
-                        "startLines": "317",
-                        "startColumns": "4",
-                        "startOffsets": "20489",
-                        "endLines": "326",
-                        "endColumns": "11",
-                        "endOffsets": "20749"
                     }
                 },
                 {

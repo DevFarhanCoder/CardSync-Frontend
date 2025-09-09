@@ -1,6 +1,18 @@
 // src/lib/api.ts
-const RAW_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-const API_BASE = RAW_BASE.replace(/\/+$/, "");
+
+/**
+ * Dev: leave base empty so /api goes through Vite proxy.
+ * Prod: prefer VITE_API_BASE_URL, else same-origin.
+ */
+function resolveApiBase(): string {
+  if (import.meta.env.DEV) return ""; // let Vite proxy handle /api
+  const envBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
+  if (envBase) return envBase.replace(/\/+$/, "");
+  const { protocol, hostname, port } = window.location;
+  return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+}
+
+const API_BASE = resolveApiBase();
 
 export const api = (path = "") =>
   `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
@@ -22,9 +34,8 @@ async function request(path: string, init: RequestInit = {}) {
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
-  const res = await fetch(api(path), { ...init, headers});
+  const res = await fetch(api(path), { ...init, headers });
 
-  // Avoid JSON.parse on HTML error pages
   const text = await res.text();
   const ctype = res.headers.get("content-type") || "";
   const body = ctype.includes("application/json") && text ? JSON.parse(text) : text || null;

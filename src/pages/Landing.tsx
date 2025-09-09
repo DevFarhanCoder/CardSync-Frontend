@@ -199,7 +199,7 @@ export default function Landing() {
         href="https://barteradverts.com"
         // NEW: device-specific creatives (put files under /public/banners/)
         desktopImageUrl="/ads/tpl-banner.jpg"
-        mobileImageUrl="/ads/Test-07.jpg"
+        mobileImageUrl="/ads/Ads-07.jpg"
 
         // optional tweaks
         desktopHeightPx={96}

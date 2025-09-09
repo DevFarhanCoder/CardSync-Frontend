@@ -1,7 +1,22 @@
 import { authHeaders } from "@/lib/api";
 
-export type UserLite = { id: string; name?: string; phone?: string; avatarUrl?: string | null; bio?: string | null; };
-export type Group = { id: string; name: string; joinCode?: string; ownerId?: string; members?: UserLite[]; unreadCount?: number; lastMessageAt?: string; };
+export type UserLite = {
+  id: string;
+  name?: string;
+  phone?: string;
+  avatarUrl?: string | null;
+  bio?: string | null;
+};
+
+export type Group = {
+  id: string;
+  name: string;
+  ownerId?: string;
+  joinCode?: string;
+  lastMessageText?: string | null;
+  lastMessageAt?: string | null;
+  members?: UserLite[]; // optional in list
+};
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url, { headers: authHeaders() });
@@ -9,7 +24,11 @@ async function get<T>(url: string): Promise<T> {
   return res.json();
 }
 async function post<T>(url: string, body?: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: authHeaders(), body: body ? JSON.stringify(body) : undefined });
+  const res = await fetch(url, {
+    method: "POST",
+    headers: authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
+  });
   if (!res.ok) {
     const t = await res.text();
     throw new Error(`${res.status} ${t || res.statusText}`);
@@ -17,18 +36,12 @@ async function post<T>(url: string, body?: unknown): Promise<T> {
   return res.json();
 }
 
-export async function fetchAllGroups(): Promise<{ items: Group[] }> {
-  return get<{ items: Group[] }>("/api/chat/groups");
-}
-export async function fetchGroupMembers(groupId: string): Promise<{ members: UserLite[] }> {
-  return get<{ members: UserLite[] }>(`/api/chat/groups/${groupId}/members`);
-}
-export async function addMemberByPhone(groupId: string, phone: string) {
-  return post<{ ok: boolean }>(`/api/chat/groups/${groupId}/members`, { phone });
-}
-export async function createGroup(name: string) {
-  return post<{ group: Group }>(`/api/chat/groups`, { name });
-}
-export async function joinByCode(code: string) {
-  return post<{ ok: boolean; id: string }>(`/api/chat/groups/join`, { code });
-}
+export const fetchAllGroups = () => get<{ items: Group[] }>("/api/chat/groups");
+export const fetchGroupMembers = (id: string) =>
+  get<{ ownerId: string; members: UserLite[] }>(`/api/chat/groups/${id}/members`);
+export const addMemberByPhone = (id: string, phone: string) =>
+  post<{ ok: boolean }>(`/api/chat/groups/${id}/members`, { phone });
+export const createGroup = (name: string) =>
+  post<{ group: Group }>(`/api/chat/groups`, { name });
+export const joinByCode = (code: string) =>
+  post<{ ok: boolean; id: string }>(`/api/chat/groups/join`, { code });

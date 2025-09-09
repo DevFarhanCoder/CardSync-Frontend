@@ -197,10 +197,16 @@ export default function Landing() {
       {/* ---- Bottom Ad: full-width Barter Adverts banner ---- */}
       <BottomAd
         href="https://barteradverts.com"
-        imageUrl="/ads/tpl-banner.jpg"
-        heightPx={96}                    
-        showClose={false}                
+        // NEW: device-specific creatives (put files under /public/banners/)
+        desktopImageUrl="/ads/tpl-banner.jpg"
+        mobileImageUrl="/ads/Test-07.jpg"
+
+        // optional tweaks
+        desktopHeightPx={96}
+        mobileHeightPx={80}
+      // showClose={true} // if you want a dismiss ✕ that persists for 24h
       />
+
 
       {/* ---- Auth modal for guests (Start Free Trial) ---- */}
       {authOpen && (

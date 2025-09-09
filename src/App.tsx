@@ -26,6 +26,7 @@ import ShareCard from "@/pages/Share";
 import { RequireAnon, RequireAuth } from "./routes/guards";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DeleteAccount from "./pages/DeleteAccount";
+import ChatDirect from "./pages/dashboard/ChatDirect";
 
 export default function App() {
   return (
@@ -49,6 +50,7 @@ export default function App() {
       <Route path="/dashboard" element={<RequireAuth><DashboardLayout /></RequireAuth>}>
         <Route index element={<Overview />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="/dashboard/chat/direct/:peerId" element={<ChatDirect />} />
         <Route path="cards/new" element={<NewCard />} />
         <Route path="cards" element={<MyCards />} />
         <Route path="builder" element={<CardBuilder />} />

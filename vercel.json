@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://<YOUR-RENDER-BACKEND>.onrender.com/api/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" },
-    { "source": "/(.*)", "destination": "/" },
-    { "source": "/api/(.*)", "destination": "https://cardsync-backend.onrender.com/api/$1" }
+    { "source": "/api/:path*", "destination": "https://cardsync-backend.onrender.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

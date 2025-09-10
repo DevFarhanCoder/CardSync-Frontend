@@ -1,8 +1,11 @@
+// /src/components/GroupDetailsModal.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   addMemberByPhone,
   fetchGroupMembers,
   joinByCode,
+  removeMember,
+  toggleAdmin,
   type Group,
   type UserLite,
 } from "@/lib/chatApi";
@@ -15,79 +18,88 @@ type Props = { open: boolean; onClose: () => void; group: Group | null; currentU
 const cleanPhone = (s: string) => s.replace(/[^\d+]/g, "");
 
 export default function GroupDetailsModal({ open, onClose, group, currentUser }: Props) {
-  const [ownerId, setOwnerId] = useState<string>("");
+  const nav = useNavigate();
+  const uid = getUserId(currentUser);
   const [members, setMembers] = useState<UserLite[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [ownerId, setOwnerId] = useState<string>("");
+  const [admins, setAdmins] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
   const [joining, setJoining] = useState(false);
+  const [code, setCode] = useState(group?.joinCode || "");
+  const [error, setError] = useState<string | null>(null);
 
-  const navigate = useNavigate();
-  const currentUserId = getUserId(currentUser);
-  const isOwner = ownerId && currentUserId && ownerId === currentUserId;
+  const isOwner = ownerId && uid && String(ownerId) === String(uid);
+  const isAdmin = isOwner || admins.includes(String(uid));
+  const memberCount = members.length;
 
   useEffect(() => {
     if (!open || !group?.id) return;
-    let alive = true;
     (async () => {
-      setLoading(true);
-      try {
-        const { ownerId, members } = await fetchGroupMembers(group.id);
-        if (alive) { setOwnerId(ownerId); setMembers(members); }
-      } catch (e: any) {
-        if (alive) setError(e?.message || "Failed to load members");
-      } finally {
-        if (alive) setLoading(false);
-      }
+      const data = await fetchGroupMembers(group.id);
+      setOwnerId(data.ownerId);
+      setAdmins(data.admins || []);
+      setMembers(data.members || []);
+      if (data.joinCode) setCode(data.joinCode);
     })();
-    return () => { alive = false; setError(null); setMembers([]); };
   }, [open, group?.id]);
 
-  const memberCount = useMemo(() => members.length, [members]);
+  const sortedMembers = useMemo(() => {
+    const meFirst = (a: UserLite, b: UserLite) => (String(a.id) === String(uid) ? -1 : String(b.id) === String(uid) ? 1 : 0);
+    const byName = (a: UserLite, b: UserLite) => (a.name || "").localeCompare(b.name || "");
+    return [...members].sort((a, b) => meFirst(a, b) || byName(a, b));
+  }, [members, uid]);
 
-  const handleAdd = async () => {
+  async function handleAdd() {
     if (!group) return;
-    const p = cleanPhone(phone);
-    if (!p) return;
-    setAdding(true);
-    setError(null);
+    setAdding(true); setError(null);
     try {
+      const p = cleanPhone(phone);
+      if (!p) throw new Error("Invalid phone");
       await addMemberByPhone(group.id, p);
-      const { members } = await fetchGroupMembers(group.id);
-      setMembers(members);
-      setPhone("");
-    } catch (e: any) {
-      setError(e?.message || "Failed to add member");
-    } finally {
-      setAdding(false);
-    }
-  };
+      setPhone(""); // clear
+      const data = await fetchGroupMembers(group.id);
+      setMembers(data.members || []);
+      setAdmins(data.admins || []);
+    } catch (e: any) { setError(e.message || String(e)); }
+    finally { setAdding(false); }
+  }
 
-  const call = (m: UserLite) => m.phone && window.open(`tel:${cleanPhone(m.phone)}`, "_self");
-  const dm = (m: UserLite) => navigate(`/dashboard/chat/direct/${m.id}`);
-
-  const doJoin = async () => {
+  async function doJoin() {
     if (!code.trim()) return;
-    setJoining(true);
+    setJoining(true); setError(null);
     try {
       await joinByCode(code.trim());
-      setCode("");
       onClose();
-    } catch (e: any) {
-      setError(e?.message || "Invalid code");
-    } finally {
-      setJoining(false);
-    }
-  };
+    } catch (e: any) { setError(e.message || String(e)); }
+    finally { setJoining(false); }
+  }
 
-  if (!open) return null;
+  async function makeAdmin(userId: string, make: boolean) {
+    if (!group) return;
+    try {
+      await toggleAdmin(group.id, userId, make);
+      const data = await fetchGroupMembers(group.id);
+      setMembers(data.members || []);
+      setAdmins(data.admins || []);
+    } catch (e) {}
+  }
+
+  async function remove(userId: string) {
+    if (!group) return;
+    try {
+      await removeMember(group.id, userId);
+      const data = await fetchGroupMembers(group.id);
+      setMembers(data.members || []);
+      setAdmins(data.admins || []);
+    } catch (e) {}
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-3xl rounded-2xl bg-neutral-900 p-4 shadow-xl ring-1 ring-white/10 md:p-6">
-        <div className="mb-4 flex items-center justify-between">
+    <div className={`fixed inset-0 z-50 ${open ? "block" : "hidden"}`}>
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-neutral-900 text-neutral-100 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-white/10 p-4">
           <h3 className="text-base font-semibold text-white md:text-lg">Group details</h3>
           <button onClick={onClose} className="rounded-full px-2 py-1 text-sm text-neutral-300 hover:bg-white/10">✕</button>
         </div>
@@ -96,13 +108,13 @@ export default function GroupDetailsModal({ open, onClose, group, currentUser }:
         <div className="mb-4 rounded-xl border border-white/10 p-3 md:p-4">
           <div className="mb-1 text-sm text-neutral-400">Join code</div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input value={group?.joinCode || ""} readOnly className="w-28 rounded-lg bg-neutral-800 px-3 py-2 text-center font-mono text-white" />
-            <button onClick={() => navigator.clipboard.writeText(group?.joinCode || "")} className="inline-flex items-center gap-2 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700">
+            <input value={group?.joinCode || ""} readOnly className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-center font-mono text-white" />
+            <button onClick={() => navigator.clipboard.writeText(group?.joinCode || "")} className="flex items-center gap-2 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700">
               <Copy className="h-4 w-4" /> Copy
             </button>
             <div className="ml-auto flex-1 sm:ml-4">
               <div className="flex gap-2">
-                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code to join a group" className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-white placeholder:text-neutral-500" />
+                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter code" className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-white placeholder:text-neutral-500" />
                 <button onClick={doJoin} disabled={joining || !code.trim()} className="rounded-lg bg-neutral-800 px-3 py-2 text-sm text-neutral-200 hover:bg-neutral-700 disabled:opacity-50">
                   Join
                 </button>
@@ -119,47 +131,42 @@ export default function GroupDetailsModal({ open, onClose, group, currentUser }:
               <div className="text-sm text-neutral-400">Members</div>
               <div className="rounded-full bg-neutral-800 px-2 py-0.5 text-xs text-neutral-300">{memberCount}</div>
             </div>
-
-            {loading ? (
-              <div className="py-2 text-sm text-neutral-400">Loading members…</div>
-            ) : members.length === 0 ? (
-              <div className="py-2 text-sm text-neutral-500">No members yet.</div>
+            {sortedMembers.length === 0 ? (
+              <div className="text-sm text-neutral-400">No members found.</div>
             ) : (
-              <ul className="space-y-2">
-                {members.map((m) => {
-                  const admin = ownerId === m.id;
+              <ul className="divide-y divide-white/10">
+                {sortedMembers.map((m) => {
+                  const isOwnerHere = String(m.id) === String(ownerId);
+                  const isAdminHere = isOwnerHere || !!m.isAdmin || admins.includes(String(m.id));
                   return (
-                    <li key={m.id} className="flex items-center justify-between rounded-lg bg-neutral-800 p-2">
-                      <div className="flex items-center gap-3">
-                        {m.avatarUrl ? (
-                          <img src={m.avatarUrl} className="h-8 w-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-700">
-                            <UserIcon className="h-4 w-4 text-neutral-300" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-medium text-white">{m.name?.trim() || m.phone || "User"}</div>
-                            {admin && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-yellow-500/20 px-2 py-[2px] text-[10px] font-semibold text-yellow-300">
-                                <Crown className="h-3 w-3" /> Admin
-                              </span>
-                            )}
-                          </div>
-                          {m.bio && <div className="text-xs text-neutral-400">{m.bio}</div>}
+                    <li key={m.id} className="flex items-center gap-3 py-2">
+                      <div className="grid h-8 w-8 place-items-center rounded-full bg-neutral-800"><UserIcon className="h-4 w-4"/></div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-neutral-100">{m.name || m.email || m.phone || "User"}</span>
+                          {isOwnerHere && <span className="rounded-full bg-yellow-400/20 px-2 py-0.5 text-[10px] text-yellow-400">OWNER</span>}
+                          {!isOwnerHere && isAdminHere && <span className="rounded-full bg-blue-400/20 px-2 py-0.5 text-[10px] text-blue-400">ADMIN</span>}
                         </div>
+                        <div className="text-xs text-neutral-400">{[m.email, m.phone].filter(Boolean).join(" • ") || "—"}</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {m.phone && (
-                          <button onClick={() => call(m)} className="rounded-lg bg-neutral-700 px-2 py-1 text-xs text-neutral-200 hover:bg-neutral-600">
-                            Call
+                      {/* Quick actions */}
+                      <button className="chip" onClick={() => nav(`/dashboard/chat/direct/${m.id}`)} title="Message">
+                        <MessageSquare className="h-4 w-4"/>
+                      </button>
+                      {m.phone && (
+                        <a className="chip" href={`tel:${m.phone}`} title="Call">
+                          <Phone className="h-4 w-4"/>
+                        </a>
+                      )}
+                      {/* Admin controls visible to admins */}
+                      {isAdmin && !isOwnerHere && (
+                        <>
+                          <button className="chip" onClick={() => makeAdmin(m.id, !isAdminHere)} title={isAdminHere ? "Remove admin" : "Make admin"}>
+                            <Crown className="h-4 w-4"/>
                           </button>
-                        )}
-                        <button onClick={() => dm(m)} className="rounded-lg bg-yellow-500 px-2 py-1 text-xs font-medium text-black hover:bg-yellow-400">
-                          Message
-                        </button>
-                      </div>
+                          <button className="chip" onClick={() => remove(m.id)} title="Remove">✕</button>
+                        </>
+                      )}
                     </li>
                   );
                 })}
@@ -167,16 +174,16 @@ export default function GroupDetailsModal({ open, onClose, group, currentUser }:
             )}
           </div>
 
-          {/* Add by phone — only for owner */}
+          {/* Add by phone — only for admin */}
           <div className="rounded-xl border border-white/10 p-3 md:p-4">
             <div className="mb-2 text-sm text-neutral-400">Add member by phone</div>
-            {isOwner ? (
+            {isAdmin ? (
               <>
                 <div className="flex gap-2">
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX"
                          className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-white placeholder:text-neutral-500" />
                   <button onClick={handleAdd} disabled={adding || !phone.trim()}
-                          className="rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 disabled:opacity-50">
+                          className="rounded-lg bg-yellow-500 px-4 py-2 font-semibold text-black hover:bg-yellow-400 disabled:opacity-50">
                     {adding ? "Adding…" : "Add"}
                   </button>
                 </div>
@@ -184,7 +191,7 @@ export default function GroupDetailsModal({ open, onClose, group, currentUser }:
                 <p className="mt-2 text-xs text-neutral-500">The phone must belong to an existing account.</p>
               </>
             ) : (
-              <p className="text-sm text-neutral-400">Only the group owner can add members.</p>
+              <p className="text-sm text-neutral-400">Only group admins can add members.</p>
             )}
           </div>
         </div>

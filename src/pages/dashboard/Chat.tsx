@@ -1,96 +1,49 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { fetchAllGroups, fetchGroupMembers, createGroup, type Group, type UserLite } from "@/lib/chatApi";
-import GroupDetailsModal from "@/components/GroupDetailsModal";
-import { Plus, Users } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import { getUserId } from "@/utils/getUserId";
-
-type MembersCache = Record<string, UserLite[]>;
+import React, { useEffect, useState } from "react";
+import { fetchAllGroups, type Group } from "@/lib/chatApi";
+import { MoreHorizontal, PlusCircle, QrCode, ArrowLeft } from "lucide-react";
+import GroupRightPanel from "@/components/GroupRightPanel";
+import CreateGroupModal from "@/components/CreateGroupModal";
+import JoinGroupModal from "@/components/JoinGroupModal";
 
 export default function ChatPage() {
-  const { user } = useAuth();
-  const uid = getUserId(user);
-
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Group | null>(null);
-  const [membersCache, setMembersCache] = useState<MembersCache>({});
-  const [modalOpen, setModalOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
+
+  const [selected, setSelected] = useState<Group | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
 
   useEffect(() => {
-    let alive = true;
     (async () => {
-      setLoading(true); setErr(null);
       try {
-        const { items } = await fetchAllGroups();
-        // Keep only groups where user is owner or member
-        const filtered = items.filter(g => g.ownerId === uid || (g.members || []).some(m => m.id === uid));
-        if (alive) setGroups(filtered);
-        if (alive && filtered.length && !selected) setSelected(filtered[0]);
-      } catch (e: any) {
-        if (alive) { setErr(e?.message || "Failed to load groups"); setGroups([]); }
-      } finally {
-        if (alive) setLoading(false);
-      }
+        const data = await fetchAllGroups();
+        setGroups(data.items || []);
+      } catch (e: any) { setErr(e.message || String(e)); }
+      finally { setLoading(false); }
     })();
-    return () => { alive = false; };
-  }, [uid]);
-
-  const openGroup = async (g: Group) => {
-    setSelected(g);
-    if (!membersCache[g.id]) {
-      try {
-        const { members } = await fetchGroupMembers(g.id);
-        setMembersCache(prev => ({ ...prev, [g.id]: members }));
-      } catch { }
-    }
-  };
-
-  const selectedMemberCount = useMemo(
-    () => (selected && membersCache[selected.id]?.length) || 0,
-    [selected, membersCache]
-  );
-
-  const handleCreate = async () => {
-    const name = prompt("Group name?");
-    if (!name) return;
-    setCreating(true);
-    try {
-      const { group } = await createGroup(name);
-      setGroups(prev => [group, ...prev]);
-      setSelected(group);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const containerHeight = "calc(100vh - 72px)";
+  }, []);
 
   return (
-    <div className="flex flex-col md:flex-row" style={{ height: containerHeight }}>
-      {/* Left list */}
-      <aside className="w-full border-b border-white/10 md:w-[320px] md:border-b-0 md:border-r">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h2 className="text-sm font-semibold text-neutral-200">Chats</h2>
-          <div className="flex items-center gap-2">
-            <button onClick={handleCreate} disabled={creating} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-700 disabled:opacity-50">
-              <Plus className="mr-1 inline h-4 w-4" /> New
-            </button>
-            <button onClick={() => selected && setModalOpen(true)} disabled={!selected} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-700 disabled:opacity-50">
-              <Users className="mr-1 inline h-4 w-4" /> Group details
-            </button>
+    <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden bg-[#0d1117]">
+      {/* Sidebar (full-width on mobile, fixed width on md+) */}
+      <aside className={`${selected ? "hidden md:flex" : "flex"} h-full w-full md:max-w-[360px] shrink-0 flex-col border-r border-white/10 bg-[#0b0e12]`}>
+        <div className="flex items-center justify-between gap-2 p-3">
+          <div className="text-sm font-semibold text-neutral-100">Groups</div>
+          <div className="flex gap-2">
+            <button onClick={()=>setShowJoin(true)} className="rounded-full bg-neutral-800 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700 flex items-center gap-1"><QrCode className="h-4 w-4"/> Join</button>
+            <button onClick={()=>setShowCreate(true)} className="rounded-full bg-yellow-400 px-3 py-1.5 text-xs font-medium text-black hover:opacity-90 flex items-center gap-1"><PlusCircle className="h-4 w-4"/> Create</button>
           </div>
         </div>
-
-        <div className="h-[calc(100%-56px)] overflow-auto px-3 pb-3">
+        <div className="h-[1px] w-full bg-white/10" />
+        <div className="flex-1 overflow-auto px-3 pb-3">
           {loading ? (
             <div className="px-1 text-sm text-neutral-400">Loading…</div>
           ) : err ? (
             <div className="px-1 text-sm text-red-400">{err}</div>
           ) : groups.length === 0 ? (
-            <div className="px-1 text-sm text-neutral-500">No groups yet.</div>
+            <div className="px-1 text-sm text-neutral-500">No groups yet. Create or join using code.</div>
           ) : (
             <ul className="space-y-2">
               {groups.map((g) => {
@@ -99,9 +52,9 @@ export default function ChatPage() {
                 const when = g.lastMessageAt ? new Date(g.lastMessageAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
                 return (
                   <li key={g.id}>
-                    <button onClick={() => openGroup(g)} className={`w-full rounded-xl px-3 py-2 text-left ${active ? "bg-neutral-800" : "hover:bg-neutral-800"}`}>
+                    <button onClick={() => setSelected(g)} className={`w-full rounded-xl p-3 text-left ${active ? "bg-neutral-800" : "hover:bg-neutral-800"}`}>
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium text-neutral-100">{g.name || "Group"}</div>
+                        <div className="text-sm font-medium text-neutral-100 truncate">{g.name || "Group"}</div>
                         <div className="ml-3 shrink-0 text-[11px] text-neutral-400">{when}</div>
                       </div>
                       <div className="mt-0.5 line-clamp-1 text-xs text-neutral-400">{preview}</div>
@@ -114,31 +67,36 @@ export default function ChatPage() {
         </div>
       </aside>
 
-      {/* Right conversation */}
-      <main className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div>
-            <div className="text-sm font-semibold text-neutral-100">{selected?.name || "Select a group"}</div>
-            {selected && <div className="text-xs text-neutral-400">{selectedMemberCount} member{selectedMemberCount === 1 ? "" : "s"}</div>}
+      {/* Main chat area (hidden on mobile until a group is selected) */}
+      <main className={`${selected ? "flex" : "hidden md:flex"} h-full flex-1 flex-col`}>
+        <div className="flex h-12 items-center justify-between border-b border-white/10 px-3">
+          <div className="flex items-center gap-2">
+            <button onClick={()=>setSelected(null)} className="md:hidden rounded-full p-1.5 hover:bg-white/10">
+              <ArrowLeft className="h-5 w-5 text-neutral-300" />
+            </button>
+            <div className="text-sm font-medium text-neutral-200 truncate">{selected ? selected.name : "Select a group"}</div>
           </div>
-          {selected && <button onClick={() => setModalOpen(true)} className="rounded-lg bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-700">Group details</button>}
+          <button onClick={()=>selected && setDrawerOpen(true)} disabled={!selected} className="rounded-full p-1.5 hover:bg-white/10 disabled:opacity-50">
+            <MoreHorizontal className="h-5 w-5 text-neutral-300" />
+          </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto p-4 text-sm text-neutral-400">
-          {selected ? "No messages yet." : "Pick a group on the left to get started."}
+        {/* Messages list - placeholder */}
+        <div className="flex-1 overflow-auto p-3 md:p-6 text-sm text-neutral-400">
+          {selected ? "Start chatting… (message list & input go here)" : "Choose a group from the left or create/join one."}
         </div>
 
         <div className="border-t border-white/10 p-3">
-          <input disabled={!selected} placeholder={selected ? "Type a message…" : "Select a group to start messaging"} className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-500 disabled:opacity-50" />
+          <input disabled={!selected} placeholder={selected ? "Type a message…" : "Select a group to start chatting"} className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-500 disabled:opacity-50" />
         </div>
       </main>
 
-      <GroupDetailsModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        group={selected}
-        currentUser={user}
-      />
+      {/* Right drawer */}
+      <GroupRightPanel open={drawerOpen} onClose={()=>setDrawerOpen(false)} group={selected} />
+
+      {/* Modals */}
+      <CreateGroupModal open={showCreate} onClose={()=>setShowCreate(false)} />
+      <JoinGroupModal open={showJoin} onClose={()=>setShowJoin(false)} />
     </div>
   );
 }

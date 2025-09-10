@@ -27,6 +27,9 @@ import { RequireAnon, RequireAuth } from "./routes/guards";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DeleteAccount from "./pages/DeleteAccount";
 import ChatDirect from "./pages/dashboard/ChatDirect";
+import ProfilePage from "@/pages/dashboard/Profile";
+import DirectChat from "@/pages/dashboard/DirectChat";
+import UserView from "@/pages/dashboard/UserView";
 
 export default function App() {
   return (
@@ -63,6 +66,9 @@ export default function App() {
         <Route path="settings" element={<Settings />} />
         <Route path="billing" element={<Billing />} />
         <Route path="support" element={<Support />} />
+        <Route path="/dashboard/profile" element={<ProfilePage />} />
+        <Route path="/dashboard/dm/:id" element={<DirectChat />} />
+        <Route path="/dashboard/user/:id" element={<UserView />} />
       </Route>
 
       {/* catch-all */}

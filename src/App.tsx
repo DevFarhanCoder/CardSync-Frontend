@@ -69,6 +69,7 @@ export default function App() {
         <Route path="/dashboard/profile" element={<ProfilePage />} />
         <Route path="/dashboard/dm/:id" element={<DirectChat />} />
         <Route path="/dashboard/user/:id" element={<UserView />} />
+        <Route path="/dashboard" element={<Navigate to="/dashboard/profile" replace />} />
       </Route>
 
       {/* catch-all */}

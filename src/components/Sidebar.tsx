@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 const items = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { to: "/dashboard/profile", label: "My Profile", icon: LayoutDashboard },
   { to: "/dashboard/chat", label: "Chat", icon: MessageSquare },          // ✅ NEW
   { to: "/dashboard/cards", label: "My Cards", icon: CreditCard },
   { to: "/dashboard/builder", label: "Card Builder", icon: Boxes },

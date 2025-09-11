@@ -1,5 +1,6 @@
 // src/lib/http.ts
 // Single tiny HTTP client with cold-start retries and JSON/Form helpers.
+import axios from "axios";
 
 type HttpOptions =
   & Omit<RequestInit, "body">
@@ -81,3 +82,8 @@ export async function http<T = any>(path: string, opts: HttpOptions = {}): Promi
   // If backend returned empty or other types.
   return undefined as unknown as T;
 }
+
+export const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || "",
+  withCredentials: true, // REQUIRED for auth cookie
+});

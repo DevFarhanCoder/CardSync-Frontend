@@ -1,102 +1,53 @@
-import { authHeaders } from "@/lib/api";
+// src/lib/chatApi.ts
+// Minimal chat API wrapper used by Groups UI
 
-export type UserLite = {
-  id: string;
-  name?: string;
-  phone?: string;
-  email?: string;
-  avatarUrl?: string | null;
-  bio?: string | null;
-  isAdmin?: boolean;
-};
+import { http } from "@/lib/http";
 
 export type Group = {
   id: string;
   name: string;
-  ownerId?: string;
   joinCode?: string;
-  lastMessageText?: string | null;
-  lastMessageAt?: string | null;
-  photoUrl?: string | null;
+  ownerId: string;
+  avatarUrl?: string;
+  description?: string;
+  membersCount?: number;
 };
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path, { headers: { ...(await authHeaders()) } });
-  if (!res.ok) {
-    let t = "";
-    try { t = await res.text(); } catch {}
-    throw new Error(`${res.status} ${t || res.statusText}`);
-  }
-  return res.json();
+export async function listGroups(): Promise<Group[]> {
+  return http<Group[]>("/chat/groups");
 }
 
-async function post<T>(path: string, body?: any): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-    body: body ? JSON.stringify(body) : undefined,
+export async function createGroup(name: string): Promise<Group> {
+  return http<Group>("/chat/groups", { method: "POST", json: { name } });
+}
+
+export async function joinGroup(code: string): Promise<Group> {
+  return http<Group>("/chat/groups/join", { method: "POST", json: { code } });
+}
+
+export async function leaveGroup(groupId: string): Promise<{ ok: true }> {
+  return http<{ ok: true }>(`/chat/groups/${encodeURIComponent(groupId)}/leave`, {
+    method: "POST"
   });
-  if (!res.ok) {
-    let t = "";
-    try { t = await res.text(); } catch {}
-    throw new Error(`${res.status} ${t || res.statusText}`);
-  }
-  return res.json();
 }
 
-async function patch<T>(path: string, body?: any): Promise<T> {
-  const res = await fetch(path, {
+export async function updateGroupSettings(
+  groupId: string,
+  payload: Partial<Pick<Group, "name" | "description">>
+): Promise<Group> {
+  return http<Group>(`/chat/groups/${encodeURIComponent(groupId)}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-    body: body ? JSON.stringify(body) : undefined,
+    json: payload
   });
-  if (!res.ok) {
-    let t = "";
-    try { t = await res.text(); } catch {}
-    throw new Error(`${res.status} ${t || res.statusText}`);
-  }
-  return res.json();
 }
 
-export const fetchAllGroups = () => get<{ items: Group[] }>("/api/chat/groups");
-export const fetchGroupMembers = (id: string) =>
-  get<{
-      viewerId(viewerId: any): unknown;
-      viewerIsOwner: any; ownerId: string; admins: string[]; members: UserLite[]; joinCode: string; name: string; description: string; photoUrl: string | null 
-}>(`/api/chat/groups/${id}/members`);
-export const addMemberByPhone = (id: string, phone: string) =>
-  post<{ ok: boolean }>(`/api/chat/groups/${id}/members`, { phone });
-export const addMembersBulk = (id: string, phones: string[]) =>
-  post<{ ok: boolean; added: number }>(`/api/chat/groups/${id}/members/bulk`, { phones });
-export const createGroup = (name: string) =>
-  post<{ group: Group }>(`/api/chat/groups`, { name });
-export const joinByCode = (code: string) =>
-  post<{ ok: boolean; id: string }>(`/api/chat/groups/join`, { code });
-export const removeMember = (id: string, userId: string) =>
-  post<{ ok: boolean }>(`/api/chat/groups/${id}/members/remove`, { userId });
-export const toggleAdmin = (id: string, userId: string, makeAdmin: boolean) =>
-  post<{ ok: boolean }>(`/api/chat/groups/${id}/admins`, { userId, action: makeAdmin ? "add" : "remove" });
-export const updateSettings = (id: string, data: { name?: string; description?: string }) =>
-  patch<{ ok: boolean }>(`/api/chat/groups/${id}/settings`, data);
-export const uploadGroupPhoto = async (id: string, file: File) => {
-  const fd = new FormData();
-  fd.append("photo", file);
-  const res = await fetch(`/api/chat/groups/${id}/photo`, {
-    method: "POST",
-    headers: { ...(await authHeaders()) },
-    body: fd,
+export async function uploadGroupPhoto(
+  groupId: string,
+  file: File
+): Promise<{ url: string }> {
+  const form = new FormData();
+  form.append("photo", file);
+  return http<{ url: string }>(`/chat/groups/${encodeURIComponent(groupId)}/photo`, {
+    form
   });
-  if (!res.ok) {
-    let t = "";
-    try { t = await res.text(); } catch {}
-    throw new Error(`${res.status} ${t || res.statusText}`);
-  }
-  return res.json() as Promise<{ ok: boolean; photoUrl: string }>;
-};
-
-export const syncContacts = (contacts: Array<{ email?: string; phone?: string; name?: string }>) =>
-  post<{ matches: Array<{ userId: string; email: string; name: string; phone?: string }> }>(`/api/contacts/sync`, { contacts });
-
-
-export const leaveGroup = (id: string) =>
-  post<{ ok: boolean }>(`/api/chat/groups/${id}/leave`);
+}

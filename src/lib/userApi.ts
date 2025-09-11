@@ -1,5 +1,5 @@
 // src/lib/userApi.ts
-// Small typed API client for user/profile + direct chat
+// Typed API client for user/profile + direct chat
 
 import { http } from "@/lib/http";
 
@@ -18,7 +18,7 @@ export type Me = UserLite;
 /* ----------------------------- Me / Profile ----------------------------- */
 
 export async function getMe(): Promise<Me> {
-  return http<Me>("/api/users/me");
+  return http<Me>("/users/me");
 }
 
 export async function updateMe(payload: {
@@ -26,7 +26,7 @@ export async function updateMe(payload: {
   phone?: string;
   about?: string;
 }): Promise<Me> {
-  return http<Me>("/api/users/me", { method: "PATCH", json: payload });
+  return http<Me>("/users/me", { method: "PATCH", json: payload });
 }
 
 // optional alias used elsewhere
@@ -36,24 +36,22 @@ export async function uploadAvatar(file: File): Promise<{ url: string }> {
   const form = new FormData();
   form.append("avatar", file);
   // server returns { url: string }
-  return http<{ url: string }>("/api/users/me/avatar", { form });
+  return http<{ url: string }>("/users/me/avatar", { form });
 }
 
 /* ------------------------------ Public user ----------------------------- */
 
 export async function getUser(userId: string): Promise<UserLite> {
-  return http<UserLite>(`/api/users/${encodeURIComponent(userId)}`);
+  return http<UserLite>(`/users/${encodeURIComponent(userId)}`);
 }
 
-// 🔹 Alias kept for compatibility with DirectChat.tsx
+// 🔹 Alias kept for compatibility with DirectChat.tsx and older code
 export async function getUserPublic(userId: string): Promise<UserLite> {
   return getUser(userId);
 }
 
 /* --------------------------- Direct chat helpers ------------------------- */
 
-export async function openDirect(
-  userId: string
-): Promise<{ roomId: string }> {
-  return http<{ roomId: string }>("/api/direct/open", { json: { userId } });
+export async function openDirect(userId: string): Promise<{ roomId: string }> {
+  return http<{ roomId: string }>("/direct/open", { json: { userId } });
 }

@@ -20,6 +20,11 @@ export async function listGroups(): Promise<Group[]> {
   return http<Group[]>("/chat/groups");
 }
 
+// 🔹 Alias used by Chat.tsx
+export async function fetchAllGroups(): Promise<Group[]> {
+  return listGroups();
+}
+
 export async function createGroup(name: string): Promise<Group> {
   return http<Group>("/chat/groups", { method: "POST", json: { name } });
 }

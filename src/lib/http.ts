@@ -9,8 +9,6 @@ type HttpOptions =
     form?: FormData;
   };
 
-// Optional absolute API base (recommended when frontend is on Vercel and backend on Render).
-// Example in your .env: VITE_API_BASE=https://cardsync-backend.onrender.com/api
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/api";
 
 

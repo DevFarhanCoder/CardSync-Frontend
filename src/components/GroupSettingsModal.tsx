@@ -13,43 +13,45 @@ type Props = {
 
 type ContactLite = { name?: string; email?: string; phone?: string };
 
-// GIS + People API – token flow
-async function getGoogleAccessToken(): Promise<string> {
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
-  if (!clientId) throw new Error("VITE_GOOGLE_CLIENT_ID is not set");
-  await new Promise<void>((resolve, reject) => {
-    if (window.google && (window as any).google.accounts?.oauth2) return resolve();
+// googleContacts.ts
+export async function getGoogleAccessToken(): Promise<string> {
+  const cid = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
+  if (!cid) throw new Error("VITE_GOOGLE_CLIENT_ID not set");
+
+  await new Promise<void>((ok, err) => {
+    if ((window as any).google?.accounts?.oauth2) return ok();
     const s = document.createElement("script");
     s.src = "https://accounts.google.com/gsi/client";
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Failed to load Google Identity Services"));
+    s.onload = () => ok();
+    s.onerror = () => err(new Error("Failed to load Google Identity Services"));
     document.head.appendChild(s);
   });
+
   return await new Promise<string>((resolve, reject) => {
-    const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
+    const tc = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: cid,
       scope: "https://www.googleapis.com/auth/contacts.readonly",
-      callback: (resp: any) => resp?.access_token ? resolve(resp.access_token) : reject(new Error("No access token")),
+      callback: (r: any) =>
+        r?.access_token ? resolve(r.access_token) : reject(new Error("No access token")),
     });
-    tokenClient.requestAccessToken();
+    tc.requestAccessToken();
   });
 }
 
-
-async function fetchGoogleContacts(token: string): Promise<ContactLite[]> {
-  const url = "https://people.googleapis.com/v1/people/me/connections?pageSize=2000&personFields=names,emailAddresses,phoneNumbers";
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) throw new Error("Failed to fetch Google contacts");
+export async function fetchGoogleContacts(token: string) {
+  const res = await fetch(
+    "https://people.googleapis.com/v1/people/me/connections?pageSize=2000&personFields=names,emailAddresses,phoneNumbers",
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (!res.ok) throw new Error(`People API ${res.status}`);
   const data = await res.json();
-  const out: ContactLite[] = [];
-  for (const p of data.connections || []) {
-    const name = p.names?.[0]?.displayName || "";
-    const email = p.emailAddresses?.[0]?.value || "";
-    const phone = p.phoneNumbers?.[0]?.value || "";
-    if (email || phone) out.push({ name, email, phone });
-  }
-  return out;
+  return (data.connections || []).map((p: any) => ({
+    name: p.names?.[0]?.displayName || "",
+    email: p.emailAddresses?.[0]?.value || "",
+    phone: p.phoneNumbers?.[0]?.value || "",
+  }));
 }
+
 
 export default function GroupSettingsModal({ open, onClose, group, isAdmin, onChanged }: Props) {
   const [name, setName] = useState(group?.name || "");

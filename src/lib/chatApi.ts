@@ -28,6 +28,11 @@ export async function joinGroup(code: string): Promise<Group> {
   return http<Group>("/chat/groups/join", { method: "POST", json: { code } });
 }
 
+// 🔹 Alias used by JoinGroupModal.tsx
+export async function joinByCode(code: string): Promise<Group> {
+  return joinGroup(code);
+}
+
 export async function leaveGroup(groupId: string): Promise<{ ok: true }> {
   return http<{ ok: true }>(`/chat/groups/${encodeURIComponent(groupId)}/leave`, {
     method: "POST",

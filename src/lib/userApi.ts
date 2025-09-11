@@ -1,29 +1,36 @@
-import { authHeaders } from "@/lib/api";
+import { apiFetch, getJSON } from "./http";
 
-async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path, { headers: { ...(await authHeaders()) } });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.json();
-}
-async function post<T>(path: string, body?: any): Promise<T> {
-  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: body ? JSON.stringify(body) : undefined });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-  return res.json();
-}
-async function patch<T>(path: string, body?: any): Promise<T> {
-  const res = await fetch(path, { method: "PATCH", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: body ? JSON.stringify(body) : undefined });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-  return res.json();
-}
-
-export const fetchMe = () => get<{ id: string; name: string; email: string; phone: string; bio: string; avatarUrl: string | null }>("/api/users/me");
-export const updateMe = (data: { name?: string; phone?: string; bio?: string }) => patch<{ ok: boolean }>("/api/users/me", data);
-export const uploadAvatar = async (file: File) => {
-  const fd = new FormData(); fd.append("avatar", file);
-  const res = await fetch("/api/users/me/avatar", { method: "POST", headers: { ...(await authHeaders()) }, body: fd });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-  return res.json() as Promise<{ ok: boolean; avatarUrl: string }>;
+export type Me = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  about?: string;
+  avatarUrl?: string;
+  lastActive?: string;
 };
 
-export const openDirect = (userId: string) => post<{ id: string }>("/api/dm/open", { userId });
-export const listDMs = () => get<{ items: Array<{ id: string; participants: string[]; lastMessageText: string | null; lastMessageAt: string | null }> }>("/api/dm");
+export async function getMe() {
+  return getJSON<Me>("/users/me");
+}
+
+export async function updateMe(input: Partial<Me>) {
+  return getJSON<Me>("/users/me", {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export async function uploadAvatar(file: File) {
+  const fd = new FormData();
+  fd.append("avatar", file);
+  return getJSON<{ url: string }>("/users/me/avatar", {
+    method: "POST",
+    body: fd,
+  });
+}
+
+export async function getUserPublic(id: string) {
+  return getJSON<Me>(`/users/${id}`);
+}

@@ -1,24 +1,53 @@
+import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { getUserPublic, type Me } from "@/lib/userApi";
 
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+// helper
+function timeAgo(iso?: string) {
+  if (!iso) return "—";
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  const units: [number, string][] = [
+    [60, "s"], [60, "m"], [24, "h"], [7, "d"], [4.345, "w"], [12, "mo"]
+  ];
+  let v = s, u = "s";
+  for (const [k, label] of units) {
+    if (v < k) { u = label; break; }
+    v = Math.floor(v / k); u = label;
+  }
+  return `${v}${u} ago`;
+}
 
 export default function DirectChat() {
-  const { id } = useParams();
-  const nav = useNavigate();
+  const { partnerId } = useParams<{ partnerId: string }>();
+  const [user, setUser] = useState<Me | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      if (!partnerId) return;
+      const data = await getUserPublic(partnerId);
+      setUser(data);
+    })();
+  }, [partnerId]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full flex-col bg-[#0d1117] text-neutral-100">
-      <div className="flex h-12 items-center gap-2 border-b border-white/10 px-3">
-        <button onClick={() => nav(-1)} className="rounded-full p-1.5 hover:bg-white/10">
-          <ArrowLeft className="h-5 w-5 text-neutral-300" />
-        </button>
-        <div className="text-sm font-medium">Direct chat</div>
+    <div className="flex flex-col h-full">
+      {/* Header – avatar + name + last active */}
+      <div className="flex items-center gap-3 p-3 border-b border-neutral-800">
+        <img
+          src={user?.avatarUrl || "/avatar.svg"}
+          className="w-8 h-8 rounded-full bg-neutral-700 object-cover"
+        />
+        <div className="flex flex-col">
+          <div className="font-medium">{user?.name || "User"}</div>
+          <div className="text-xs text-neutral-400">
+            {user?.lastActive ? `last active ${timeAgo(user.lastActive)}` : "—"}
+          </div>
+        </div>
       </div>
-      <div className="flex-1 overflow-auto p-3 text-sm text-neutral-400">DM room id: {id}. (Message list will go here.)</div>
-      <div className="border-t border-white/10 p-3">
-        <input placeholder="Type a message…" className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-neutral-100 placeholder:text-neutral-500" />
-      </div>
+
+      {/* ---- keep your existing message list + composer below ---- */}
+      <div className="flex-1">{/* your message list */}</div>
+      <div>{/* your composer */}</div>
     </div>
   );
 }

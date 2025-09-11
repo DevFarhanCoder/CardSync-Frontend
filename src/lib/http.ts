@@ -5,15 +5,20 @@ import axios from "axios";
 type HttpOptions =
   & Omit<RequestInit, "body">
   & {
-      json?: unknown;
-      form?: FormData;
-    };
+    json?: unknown;
+    form?: FormData;
+  };
 
 // Optional absolute API base (recommended when frontend is on Vercel and backend on Render).
 // Example in your .env: VITE_API_BASE=https://cardsync-backend.onrender.com/api
 const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "/api";
 
-// Internal fetch that retries when Render is waking and serves HTML/502/503.
+
+export const api = axios.create({
+  baseURL: "/",            // same-origin
+  withCredentials: true,   // important
+});
+
 async function apiFetch(url: string, init?: RequestInit) {
   let backoff = 700;
   for (let i = 0; i < 5; i++) {
@@ -83,7 +88,4 @@ export async function http<T = any>(path: string, opts: HttpOptions = {}): Promi
   return undefined as unknown as T;
 }
 
-export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "",
-  withCredentials: true, // REQUIRED for auth cookie
-});
+

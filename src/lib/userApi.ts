@@ -1,5 +1,5 @@
 // src/lib/userApi.ts
-// Typed API client for user/profile + direct chat
+// Typed API for current user (profile) + public user + direct chat opener.
 
 import { http } from "@/lib/http";
 
@@ -29,13 +29,12 @@ export async function updateMe(payload: {
   return http<Me>("/users/me", { method: "PATCH", json: payload });
 }
 
-// optional alias used elsewhere
+// alias used elsewhere in UI
 export const saveMe = updateMe;
 
 export async function uploadAvatar(file: File): Promise<{ url: string }> {
   const form = new FormData();
   form.append("avatar", file);
-  // server returns { url: string }
   return http<{ url: string }>("/users/me/avatar", { form });
 }
 
@@ -45,7 +44,7 @@ export async function getUser(userId: string): Promise<UserLite> {
   return http<UserLite>(`/users/${encodeURIComponent(userId)}`);
 }
 
-// 🔹 Alias kept for compatibility with DirectChat.tsx and older code
+// kept for compatibility with DirectChat.tsx
 export async function getUserPublic(userId: string): Promise<UserLite> {
   return getUser(userId);
 }

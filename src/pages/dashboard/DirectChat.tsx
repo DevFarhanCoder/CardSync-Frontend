@@ -2,12 +2,22 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getUserPublic, type Me } from "@/lib/userApi";
 
-// helper
-function timeAgo(iso?: string) {
-  if (!iso) return "—";
-  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+// Accept ISO string OR Date (or undefined) and format "x ago"
+function timeAgo(input?: string | Date) {
+  if (!input) return "—";
+  const ms =
+    typeof input === "string"
+      ? new Date(input).getTime()
+      : input.getTime();
+
+  const s = Math.max(1, Math.floor((Date.now() - ms) / 1000));
   const units: [number, string][] = [
-    [60, "s"], [60, "m"], [24, "h"], [7, "d"], [4.345, "w"], [12, "mo"]
+    [60, "s"],    // seconds -> minutes
+    [60, "m"],    // minutes -> hours
+    [24, "h"],    // hours -> days
+    [7, "d"],     // days -> weeks
+    [4.345, "w"], // weeks -> months (approx)
+    [12, "mo"],   // months -> years
   ];
   let v = s, u = "s";
   for (const [k, label] of units) {
@@ -16,6 +26,7 @@ function timeAgo(iso?: string) {
   }
   return `${v}${u} ago`;
 }
+
 
 export default function DirectChat() {
   const { partnerId } = useParams<{ partnerId: string }>();
@@ -40,7 +51,7 @@ export default function DirectChat() {
         <div className="flex flex-col">
           <div className="font-medium">{user?.name || "User"}</div>
           <div className="text-xs text-neutral-400">
-            {user?.lastActive ? `last active ${timeAgo(user.lastActive)}` : "—"}
+            {user?.lastActive ? `last active ${timeAgo(user?.lastActive)}` : "—"}
           </div>
         </div>
       </div>

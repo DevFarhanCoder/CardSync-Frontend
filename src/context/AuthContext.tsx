@@ -1,66 +1,70 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { api } from "../api/api";
 
-type User = { id?: string; email?: string; name?: string } | null;
+type User = { id: string; email: string; name?: string };
 
-type AuthContextShape = {
+type AuthCtx = {
+  user: User | null;
   loading: boolean;
   isAuthed: boolean;
-  token: string | null;
-  user: User;
-  signIn: (token: string, user?: User) => void;
-  signOut: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextShape | undefined>(undefined);
+const Ctx = createContext<AuthCtx | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<User>(null);
-  const initedRef = useRef(false);
-
-  // Initialize ONCE from localStorage
-  useEffect(() => {
-    if (initedRef.current) return;
-    initedRef.current = true;
-
-    const t = localStorage.getItem("token");
-    const u = localStorage.getItem("user");
-    setToken(t);
-    setUser(u ? JSON.parse(u) : null);
-    setLoading(false);
-  }, []);
-
-  const signIn = (t: string, u?: User) => {
-    setToken(t);
-    localStorage.setItem("token", t);
-    if (u) {
-      setUser(u);
-      localStorage.setItem("user", JSON.stringify(u));
-    }
-  };
-
-  const signOut = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  };
-
-  const value = useMemo<AuthContextShape>(() => ({
-    loading,
-    isAuthed: !!token,
-    token,
-    user,
-    signIn,
-    signOut,
-  }), [loading, token, user]);
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
+export function useAuth(): AuthCtx {
+  const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
-};
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const me = await api.me();
+      setUser(me);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const login = async (email: string, password: string) => {
+    await api.login({ email, password });
+    await refresh();
+  };
+
+  const register = async (name: string, email: string, password: string) => {
+    await api.register({ name, email, password });
+    await refresh();
+  };
+
+  const logout = async () => {
+    await api.logout();
+    setUser(null);
+  };
+
+  const value: AuthCtx = {
+    user,
+    loading,
+    isAuthed: !!user,
+    login,
+    register,
+    logout,
+    refresh,
+  };
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}

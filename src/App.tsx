@@ -5,11 +5,12 @@ import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/signin" replace />} />
+      <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
       <Route element={<ProtectedRoute />}>

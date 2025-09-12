@@ -1,134 +1,91 @@
-// src/pages/auth/SignUp.tsx
-import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
-
-/* -------- API base: use VITE_API_BASE_URL if set, else relative (for Vite proxy/Vercel) -------- */
-const RAW = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-const BASE = (RAW ?? "").replace(/\/$/, "");
-const apiUrl = (path: string) => {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  return BASE ? `${BASE}${p}` : p;
-};
+import React, { useState } from "react";
+import { api } from "../../api/api";
 
 export default function SignUp() {
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const canSubmit = useMemo(
-    () => name.trim().length > 1 && /\S+@\S+\.\S+/.test(email) && password.length >= 6 && !loading,
-    [name, email, password, loading]
-  );
-
-  async function handleSubmit(e: React.FormEvent) {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
     setErr(null);
-    setLoading(true);
-
+    setBusy(true);
     try {
-      // 🔁 endpoint fixed: register (not signup)
-      const res = await fetch(apiUrl("/api/auth/register"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: name, email, password }),
-      });
-
-      const ct = res.headers.get("content-type") || "";
-      const data = ct.includes("application/json") ? await res.json() : {};
-
-      if (!res.ok) {
-        const msg =
-          (data as any)?.message ||
-          (data as any)?.error ||
-          (res.status === 409 ? "Email already in use" : `Error ${res.status}`);
-        setErr(msg);
-        return;
-      }
-
-      // Optionally auto-login if your API returns token on register; if not, redirect to /signin
-      const token = (data as any)?.token as string | undefined;
-      if (token) localStorage.setItem("token", token);
-      if ((data as any)?.user) localStorage.setItem("user", JSON.stringify((data as any).user));
-
-      navigate(token ? "/dashboard/cards" : "/signin", { replace: true });
-    } catch {
-      setErr("Network error. Please try again.");
+      await api.register({ name, email, password });
+      window.location.href = "/dashboard";
+    } catch (e: any) {
+      setErr(e?.message || "Something went wrong");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-white flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-6 shadow-2xl">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-semibold">Create Your Account</h1>
-          <p className="text-white/60 text-sm">Start your free trial</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm mb-1">Full Name</label>
-            <input
-              type="text"
-              placeholder="John Carter"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1">Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1">Password</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:border-yellow-400/50"
-            />
-            <p className="mt-1 text-xs text-white/50">At least 6 characters.</p>
-          </div>
-
-          {err && (
-            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              {err}
+    <div className="min-h-screen bg-[#0b1220] flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="rounded-3xl bg-gradient-to-b from-white/10 to-white/5 p-8 border border-white/10 shadow-xl">
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-white/10 grid place-items-center">
+              <img src="/logo-192.png" alt="Instantlly" className="w-10 h-10 object-contain" />
             </div>
-          )}
+            <h1 className="text-white text-2xl font-semibold">Create your account</h1>
+            <p className="text-white/60 text-sm">Start your free trial</p>
+          </div>
 
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className={`w-full rounded-xl px-4 py-3 font-medium transition
-              ${canSubmit
-                ? "bg-yellow-500 text-black hover:bg-yellow-600 focus:ring-2 focus:ring-yellow-500/30"
-                : "bg-white/10 text-white/50 cursor-not-allowed"}`}
-          >
-            {loading ? "Creating account…" : "Create account"}
-          </button>
-        </form>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Full Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full rounded-xl bg-white/10 text-white placeholder-white/40 px-3 py-2 outline-none border border-white/10 focus:border-yellow-400/70"
+                placeholder="Md. Farhaan"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full rounded-xl bg-white/10 text-white placeholder-white/40 px-3 py-2 outline-none border border-white/10 focus:border-yellow-400/70"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-white/70 mb-1">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full rounded-xl bg-white/10 text-white placeholder-white/40 px-3 py-2 outline-none border border-white/10 focus:border-yellow-400/70"
+                placeholder="min 6 characters"
+              />
+            </div>
 
-        <p className="mt-6 text-center text-sm text-white/70">
-          Already have an account?{" "}
-          <Link to="/signin" className="text-yellow-400 hover:text-yellow-300">
-            Sign in
-          </Link>
-        </p>
+            {err && <div className="text-sm text-red-300 bg-red-400/10 border border-red-400/30 rounded-lg px-3 py-2">{err}</div>}
+
+            <button
+              disabled={busy}
+              className="w-full rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black font-semibold py-2 transition disabled:opacity-60"
+            >
+              {busy ? "Creating..." : "Create account"}
+            </button>
+          </form>
+
+          <p className="text-center text-white/70 text-sm mt-5">
+            Already have an account?{" "}
+            <a href="/signin" className="text-yellow-300 hover:underline">
+              Sign in
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

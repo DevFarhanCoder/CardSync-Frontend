@@ -1,7 +1,7 @@
 // src/pages/Landing.tsx
 import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Navbar from "@/components/Navbar";
 import BottomAd from "@/components/BottomAd";
 import Footer from "@/components/Footer";
 import {
